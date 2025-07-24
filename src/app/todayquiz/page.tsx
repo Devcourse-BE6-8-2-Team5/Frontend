@@ -1,5 +1,9 @@
 "use client";
 import { useState } from "react";
+import { FaRegNewspaper } from "react-icons/fa";
+
+// 임시(목업) 데이터: 오늘의 뉴스 제목
+const NEWS_TITLE = "AI가 만든 가짜뉴스와 진짜뉴스, 어떻게 구별할까?";
 
 // 임시(목업) 데이터: 오늘의 퀴즈 3문제
 const MOCK_QUIZZES = [
@@ -27,9 +31,7 @@ const MOCK_QUIZZES = [
 ];
 
 export default function TodayQuizPage() {
-  // 사용자의 선택 상태
   const [answers, setAnswers] = useState<{ [quizId: number]: string }>({});
-  // 퀴즈 제출 결과 상태
   const [result, setResult] = useState<null | {
     details: { quiz_id: number; is_correct: boolean; user_answer: string; correct_option: string }[];
     correct_count: number;
@@ -37,15 +39,14 @@ export default function TodayQuizPage() {
     total_exp: number;
   }>(null);
   const [showResult, setShowResult] = useState(false);
+  const [quizCompleted, setQuizCompleted] = useState(false);
 
-  // 임시 정답 (실제 서버에서는 DailyQuiz에서 가져옴)
   const CORRECT_OPTIONS: { [quizId: number]: string } = {
     101: "option_a",
     102: "option_a",
     103: "option_a",
   };
 
-  // 퀴즈 제출 핸들러 (임시 채점)
   const handleSubmit = () => {
     const details = MOCK_QUIZZES.map((q) => {
       const user_answer = answers[q.quiz_id];
@@ -64,39 +65,117 @@ export default function TodayQuizPage() {
     setShowResult(true);
   };
 
-  // 팝업 닫기
   const handleCloseResult = () => {
     setShowResult(false);
-    // 실제 서버 연동 시, 여기서 GET 요청을 다시 보내서 "이미 푼 퀴즈" UI로 리렌더링
+    setQuizCompleted(true);
   };
+
+  // 오늘의 뉴스 안내 카드
+  const NewsInfoCard = (
+    <div className="w-full flex flex-col items-center bg-[#e6f1fb] rounded-xl p-5 mb-0 shadow-sm border border-[#d2eaff]">
+      <div className="text-xs text-gray-500 text-center mb-2">오늘의 퀴즈는 오늘의 뉴스의 내용을 바탕으로 출제되었습니다.</div>
+      <div className="flex items-center gap-2 mb-2">
+        <FaRegNewspaper className="text-[#2b6cb0] text-xl" />
+        <span className="text-[#2b6cb0] font-bold text-base">오늘의 뉴스</span>
+      </div>
+      <div className="text-lg sm:text-xl font-semibold text-[#222] text-center mb-1">{NEWS_TITLE}</div>
+    </div>
+  );
+
+  // 퀴즈 완료 후 보여줄 UI
+  if (quizCompleted && result) {
+    return (
+      <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-20 px-4">
+        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-8 mb-10">
+          {NewsInfoCard}
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] text-center flex items-center justify-center gap-2 mb-6">
+            오늘의 퀴즈
+            <span className="bg-[#e6f1fb] text-[#2b6cb0] rounded-full px-3 py-1 text-sm font-semibold ml-2">완료</span>
+          </h1>
+          {MOCK_QUIZZES.map((quiz, idx) => {
+            const d = result.details[idx];
+            return (
+              <div key={quiz.quiz_id} className="mb-4 w-full pb-4 border-b border-[#e6eaf3] bg-[#f7fafd] rounded-xl">
+                <div className="font-bold text-lg mb-2 flex items-center justify-center gap-2">
+                  <span>{idx + 1}. {quiz.question}</span>
+                  <span className={`text-sm font-semibold ml-2 ${d.is_correct ? "text-green-600" : "text-red-600"}`}>{d.is_correct ? "정답" : "오답"}</span>
+                </div>
+                <div className="flex flex-col gap-2 items-center justify-center text-center">
+                  {["option_a", "option_b", "option_c"].map((opt) => {
+                    const isUser = d.user_answer === opt;
+                    const isCorrect = d.correct_option === opt;
+                    return (
+                      <label
+                        key={opt}
+                        className={`flex items-center gap-2 rounded px-2 py-1
+                          ${isUser && !d.is_correct ? "text-red-600 font-bold" : ""}
+                          ${isCorrect ? "text-green-700 font-bold" : ""}
+                        `}
+                      >
+                        <input
+                          type="radio"
+                          name={`quiz_${quiz.quiz_id}`}
+                          value={opt}
+                          checked={isUser}
+                          disabled
+                        />
+                        <span>{quiz[opt as "option_a" | "option_b" | "option_c"]}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-[#f7fafd] rounded-xl p-4 flex flex-col items-center shadow">
+              <div className="text-xs text-gray-500 mb-1">총 정답</div>
+              <div className="text-xl font-bold text-[#2b6cb0]">3개 중 {result.correct_count}개</div>
+            </div>
+            <div className="bg-[#e6f1fb] rounded-xl p-4 flex flex-col items-center shadow">
+              <div className="text-xs text-gray-500 mb-1">오늘의 퀴즈 경험치</div>
+              <div className="text-xl font-bold text-[#43e6b5]">+{result.exp_gained}점</div>
+            </div>
+            <div className="bg-[#f7fafd] rounded-xl p-4 flex flex-col items-center shadow">
+              <div className="text-xs text-gray-500 mb-1">나의 누적 경험치</div>
+              <div className="text-xl font-bold text-[#7f9cf5]">{result.total_exp}점</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-20 px-4">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-8 mb-10">
-        <h1 className="text-2xl sm:text-3xl font-bold text-[#2b6cb0] mb-2">오늘의 퀴즈</h1>
-        {MOCK_QUIZZES.map((quiz, idx) => (
-          <div key={quiz.quiz_id} className="mb-4">
-            <div className="font-semibold mb-2">{idx + 1}. {quiz.question}</div>
-            <div className="flex flex-col gap-2">
-              {["option_a", "option_b", "option_c"].map((opt) => (
-                <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name={`quiz_${quiz.quiz_id}`}
-                    value={opt}
-                    checked={answers[quiz.quiz_id] === opt}
-                    onChange={() => setAnswers((prev) => ({ ...prev, [quiz.quiz_id]: opt }))}
-                    disabled={!!result}
-                  />
-                  <span>{quiz[opt as "option_a" | "option_b" | "option_c"]}</span>
-                </label>
-              ))}
+      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center gap-8 mb-10">
+        {NewsInfoCard}
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] mb-3 text-center">오늘의 퀴즈</h1>
+        <div className="w-full flex flex-col items-center">
+          {MOCK_QUIZZES.map((quiz, idx) => (
+            <div key={quiz.quiz_id} className="mb-8 w-full flex flex-col items-center">
+              <div className="font-semibold mb-2 text-center w-full">{idx + 1}. {quiz.question}</div>
+              <div className="flex flex-col gap-2 w-full items-center">
+                {["option_a", "option_b", "option_c"].map((opt) => (
+                  <label key={opt} className="flex items-center gap-2 cursor-pointer w-full justify-center">
+                    <input
+                      type="radio"
+                      name={`quiz_${quiz.quiz_id}`}
+                      value={opt}
+                      checked={answers[quiz.quiz_id] === opt}
+                      onChange={() => setAnswers((prev) => ({ ...prev, [quiz.quiz_id]: opt }))}
+                      disabled={!!result}
+                    />
+                    <span>{quiz[opt as "option_a" | "option_b" | "option_c"]}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
         {!result && (
           <button
-            className="w-full py-3 rounded-full bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold text-lg shadow hover:opacity-90 transition"
+            className="w-full py-3 rounded-full bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold text-lg shadow hover:opacity-90 transition mt-8"
             onClick={handleSubmit}
             disabled={Object.keys(answers).length !== 3}
           >
@@ -125,9 +204,9 @@ export default function TodayQuizPage() {
               </div>
             ))}
             <div className="mt-2 font-semibold">
-              총 정답: {result.correct_count} / 3<br />
-              이번에 얻은 경험치: {result.exp_gained}점<br />
-              누적 경험치: {result.total_exp}점
+              총 정답: <span className="text-[#2b6cb0]">3개 중 {result.correct_count}개</span><br />
+              오늘의 퀴즈로 얻은 경험치: <span className="text-[#43e6b5]">{result.exp_gained}점</span><br />
+              누적 경험치: <span className="text-[#7f9cf5]">{result.total_exp}점</span>
             </div>
             <button
               className="mt-4 w-full py-2 rounded-full bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold shadow hover:opacity-90 transition"
