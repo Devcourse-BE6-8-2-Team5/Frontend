@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Link from "next/link";
+import { FaUserCircle } from "react-icons/fa";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,6 +29,22 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {/* 공통 네비게이션 바 */}
+        <nav className="w-full max-w-6xl mx-auto flex justify-between items-center py-5 px-6">
+          <Link href="/" className="text-2xl font-extrabold text-[#2b6cb0] tracking-tight hover:opacity-80 transition">
+            뉴스OX
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/mypage" className="text-[#2b6cb0] hover:text-[#5ac7b2] transition">
+              <FaUserCircle size={32} />
+            </Link>
+            <Link href="/login">
+              <button className="px-5 py-2 rounded-full bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-semibold shadow hover:opacity-90 transition">
+                로그인
+              </button>
+            </Link>
+          </div>
+        </nav>
         {children}
       </body>
     </html>
