@@ -13,8 +13,8 @@ export default function TodayNews() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-20 px-4">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-4 mb-10">
+    <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-8 px-4">
+      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-4 mb-10">
         <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] mb-2 text-center">오늘의 뉴스</h1>
         {news.image_url && (
           <div className="w-full flex justify-center mb-4">
@@ -29,7 +29,7 @@ export default function TodayNews() {
         </div>
         <div className="text-base text-gray-800 leading-relaxed whitespace-pre-line">{news.content}</div>
       </div>
-      <Link href="/todayquiz" className="w-full max-w-2xl">
+      <Link href="/todayquiz" className="w-full max-w-4xl">
         <button className="w-full py-3 rounded-full bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold text-lg shadow hover:opacity-90 transition">
           오늘의 퀴즈 풀러가기
         </button>
