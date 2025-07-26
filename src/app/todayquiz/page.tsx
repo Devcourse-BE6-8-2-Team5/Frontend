@@ -85,8 +85,8 @@ export default function TodayQuizPage() {
   // 퀴즈 완료 후 보여줄 UI
   if (quizCompleted && result) {
     return (
-      <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-20 px-4">
-        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-8 mb-10">
+      <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-8 px-4">
+        <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-8 mb-10">
           {NewsInfoCard}
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] text-center flex items-center justify-center gap-2 mb-6">
             오늘의 퀴즈
@@ -98,7 +98,6 @@ export default function TodayQuizPage() {
               <div key={quiz.quiz_id} className="mb-4 w-full pb-4 border-b border-[#e6eaf3] bg-[#f7fafd] rounded-xl">
                 <div className="font-bold text-lg mb-2 flex items-center justify-center gap-2">
                   <span>{idx + 1}. {quiz.question}</span>
-                  <span className={`text-sm font-semibold ml-2 ${d.is_correct ? "text-green-600" : "text-red-600"}`}>{d.is_correct ? "정답" : "오답"}</span>
                 </div>
                 <div className="flex flex-col gap-2 items-center justify-center text-center">
                   {["option_a", "option_b", "option_c"].map((opt) => {
@@ -147,8 +146,8 @@ export default function TodayQuizPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-20 px-4">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center gap-8 mb-10">
+    <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-8 px-4">
+      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center gap-8 mb-10">
         {NewsInfoCard}
         <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] mb-3 text-center">오늘의 퀴즈</h1>
         <div className="w-full flex flex-col items-center">
