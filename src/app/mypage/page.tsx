@@ -1,20 +1,62 @@
-"use client"
-import React, { useState } from 'react';
+"use client";
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
-const mockUser = {
-  name: '홍길동',
-  email: 'honggildong@example.com',
-  level: 1,
-  exp: 55, // 0~100 기준
-};
+interface MemberInfo {
+  id: number;
+  name: string;
+  email: string;
+  exp: number;
+  level: number;
+  role: string;
+}
 
 export default function MyPage() {
-  const [user, setUser] = useState(mockUser);
+  const { isAuthenticated, user } = useAuth();
+  const router = useRouter();
+  const [memberInfo, setMemberInfo] = useState<MemberInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState(user);
+  const [form, setForm] = useState<MemberInfo | null>(null);
+
+  // 인증 확인 및 회원 정보 조회
+  useEffect(() => {
+    if (!isAuthenticated) {
+      alert('로그인이 필요합니다.');
+      router.replace('/login');
+      return;
+    }
+
+    fetchMemberInfo();
+  }, [isAuthenticated, router]);
+
+  const fetchMemberInfo = async () => {
+    try {
+      const response = await fetch('/api/members/info', {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('회원 정보 조회에 실패했습니다.');
+      }
+
+      const data = await response.json();
+      setMemberInfo(data.data);
+      setForm(data.data);
+    } catch (error) {
+      setError('회원 정보를 불러오는데 실패했습니다.');
+      console.error('회원 정보 조회 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    if (form) {
+      setForm({ ...form, [e.target.name]: e.target.value });
+    }
   };
 
   const handleEdit = () => {
@@ -22,24 +64,54 @@ export default function MyPage() {
   };
 
   const handleSave = () => {
-    setUser(form);
-    setEditing(false);
+    if (form) {
+      setMemberInfo(form);
+      setEditing(false);
+      alert('정보가 수정되었습니다.');
+    }
   };
 
   const handleCancel = () => {
-    setForm(user);
-    setEditing(false);
+    if (memberInfo) {
+      setForm(memberInfo);
+      setEditing(false);
+    }
   };
 
   const handleDelete = () => {
     if (window.confirm('정말로 탈퇴하시겠습니까?')) {
       alert('탈퇴되었습니다.');
+      // TODO: 실제 탈퇴 API 호출
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] flex flex-col items-center justify-center py-16">
+        <div className="text-xl text-[#2b6cb0]">로딩 중...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] flex flex-col items-center justify-center py-16">
+        <div className="text-xl text-red-500">{error}</div>
+      </div>
+    );
+  }
+
+  if (!memberInfo) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] flex flex-col items-center justify-center py-16">
+        <div className="text-xl text-red-500">회원 정보를 찾을 수 없습니다.</div>
+      </div>
+    );
+  }
+
   // 경험치 바 관련
   const maxLevel = 3;
-  const expPercent = Math.min(user.exp, 100);
+  const expPercent = Math.min(memberInfo.exp, 100);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] flex flex-col items-center justify-center py-16">
@@ -52,13 +124,14 @@ export default function MyPage() {
           {/* 내 정보 */}
           <div className="w-full bg-white/80 rounded-2xl p-10 flex flex-col items-center shadow-md">
             <div className="text-2xl font-bold text-[#2b6cb0] mb-4">내 정보</div>
+            
             {editing ? (
               <div className="w-full flex flex-col gap-6">
                 <div className="flex flex-col gap-2">
                   <label className="text-[#2b6cb0] font-semibold">이름</label>
                   <input
                     name="name"
-                    value={form.name}
+                    value={form?.name || ''}
                     onChange={handleChange}
                     className="px-4 py-2 rounded-xl border border-[#e0e7ef] focus:outline-none focus:ring-2 focus:ring-[#7f9cf5] bg-white/90 text-[#383838] font-medium shadow"
                   />
@@ -67,7 +140,7 @@ export default function MyPage() {
                   <label className="text-[#2b6cb0] font-semibold">이메일</label>
                   <input
                     name="email"
-                    value={form.email}
+                    value={form?.email || ''}
                     onChange={handleChange}
                     className="px-4 py-2 rounded-xl border border-[#e0e7ef] focus:outline-none focus:ring-2 focus:ring-[#7f9cf5] bg-white/90 text-[#383838] font-medium shadow"
                   />
@@ -85,8 +158,8 @@ export default function MyPage() {
               </div>
             ) : (
               <>
-                <div className="text-xl text-[#383838] font-semibold mb-1">이름: <span className="font-normal">{user.name}</span></div>
-                <div className="text-xl text-[#383838] font-semibold mb-4">이메일: <span className="font-normal">{user.email}</span></div>
+                <div className="text-xl text-[#383838] font-semibold mb-1">이름: <span className="font-normal">{memberInfo.name}</span></div>
+                <div className="text-xl text-[#383838] font-semibold mb-4">이메일: <span className="font-normal">{memberInfo.email}</span></div>
                 <div className="flex flex-row gap-4 mt-2 w-full justify-end items-center">
                   <button
                     onClick={handleEdit}
@@ -116,8 +189,8 @@ export default function MyPage() {
                   style={{ width: `${expPercent}%` }}
                 />
               </div>
-              <div className="text-lg text-[#2b6cb0] font-semibold">현재 경험치: {user.exp} / 100</div>
-              <div className="text-lg text-[#2b6cb0] font-semibold">현재 레벨: {user.level}</div>
+              <div className="text-lg text-[#2b6cb0] font-semibold">현재 경험치: {memberInfo.exp} / 100</div>
+              <div className="text-lg text-[#2b6cb0] font-semibold">현재 레벨: {memberInfo.level}</div>
             </div>
           </div>
         </div>
