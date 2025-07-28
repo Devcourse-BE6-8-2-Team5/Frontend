@@ -8,13 +8,13 @@ const isAdmin = true; // false로 바꾸면 일반 사용자 시나리오 테스
 // mock 데이터
 const mockUsers = [
   { id: 1, name: 'test1', email: 'test1@example.com' },
-  { id: 2, name: '김철수', email: 'kim@example.com' },
-  { id: 3, name: '이영희', email: 'lee@example.com' },
+  { id: 2, name: 'test2', email: 'test2@example.com' },
+  { id: 3, name: 'test3', email: 'test3@example.com' },
 ];
 const mockNews = [
-  { id: 101, title: '첫 번째 뉴스', author: '홍길동', date: '2024-06-01' },
-  { id: 102, title: '두 번째 뉴스', author: '김철수', date: '2024-06-02' },
-  { id: 103, title: '세 번째 뉴스', author: '이영희', date: '2024-06-03' },
+  { id: 1, title: '첫 번째 뉴스', author: 'test4', date: '2024-06-01' },
+  { id: 2, title: '두 번째 뉴스', author: 'test5', date: '2024-06-02' },
+  { id: 3, title: '세 번째 뉴스', author: 'test6', date: '2024-06-03' },
 ];
 
 export default function AdminPage() {
