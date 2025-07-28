@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+<<<<<<< HEAD
 import Image from "next/image";
 import { FaUserCircle } from "react-icons/fa";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,6 +28,13 @@ export default function Navigation() {
       setCharacterImage(image);
     }
   }, [user]);
+=======
+import { FaUserCircle } from "react-icons/fa";
+import { useAuth } from "@/contexts/AuthContext";
+
+export default function Navigation() {
+  const { isAuthenticated, user, logout } = useAuth();
+>>>>>>> b0ee16a (work)
 
   const handleLogout = async () => {
     await logout();
@@ -44,12 +52,18 @@ export default function Navigation() {
               <span className="text-[#2b6cb0] font-semibold">
                 {user?.name}님
               </span>
+<<<<<<< HEAD
               
               {/* 캐릭터 이미지로 마이페이지 링크 */}
               <Link href="/mypage" className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7f9cf5] to-[#43e6b5] flex items-center justify-center shadow-md hover:scale-110 transition-transform">
                 <span className="text-lg">{characterImage}</span>
               </Link>
 
+=======
+              <Link href="/mypage" className="text-[#2b6cb0] hover:text-[#5ac7b2] transition">
+                <FaUserCircle size={32} />
+              </Link>
+>>>>>>> b0ee16a (work)
             </div>
             <button 
               onClick={handleLogout}
