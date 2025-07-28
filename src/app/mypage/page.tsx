@@ -10,17 +10,25 @@ interface MemberInfo {
   exp: number;
   level: number;
   role: string;
+<<<<<<< HEAD
   characterImage?: string;
   password?: string; // 프론트에서만 사용
 }
 
 export default function MyPage() {
   const { isAuthenticated, user, checkAuth } = useAuth();
+=======
+}
+
+export default function MyPage() {
+  const { isAuthenticated, user } = useAuth();
+>>>>>>> b0ee16a (work)
   const router = useRouter();
   const [memberInfo, setMemberInfo] = useState<MemberInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
+<<<<<<< HEAD
   const [form, setForm] = useState<MemberInfo & { password?: string } | null>(null);
 
   // 인증 확인 및 회원 정보 조회
@@ -55,6 +63,20 @@ export default function MyPage() {
       window.removeEventListener('quizCompleted', handleQuizCompleted);
     };
   }, []);
+=======
+  const [form, setForm] = useState<MemberInfo | null>(null);
+
+  // 인증 확인 및 회원 정보 조회
+  useEffect(() => {
+    if (!isAuthenticated) {
+      alert('로그인이 필요합니다.');
+      router.replace('/login');
+      return;
+    }
+
+    fetchMemberInfo();
+  }, [isAuthenticated, router]);
+>>>>>>> b0ee16a (work)
 
   const fetchMemberInfo = async () => {
     try {
@@ -87,6 +109,7 @@ export default function MyPage() {
     setEditing(true);
   };
 
+<<<<<<< HEAD
   const handleSave = async () => {
     if (form) {
       if (!form.password || form.password.length < 8) {
@@ -150,6 +173,30 @@ export default function MyPage() {
     }
   };
 
+=======
+  const handleSave = () => {
+    if (form) {
+      setMemberInfo(form);
+      setEditing(false);
+      alert('정보가 수정되었습니다.');
+    }
+  };
+
+  const handleCancel = () => {
+    if (memberInfo) {
+      setForm(memberInfo);
+      setEditing(false);
+    }
+  };
+
+  const handleDelete = () => {
+    if (window.confirm('정말로 탈퇴하시겠습니까?')) {
+      alert('탈퇴되었습니다.');
+      // TODO: 실제 탈퇴 API 호출
+    }
+  };
+
+>>>>>>> b0ee16a (work)
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] flex flex-col items-center justify-center py-16">
@@ -174,6 +221,7 @@ export default function MyPage() {
     );
   }
 
+<<<<<<< HEAD
   // 경험치 바 관련 (백엔드 로직과 일치)
   const calculateExpPercent = (exp: number, level: number) => {
     if (level === 1) return Math.min(exp, 50) * 2; // 0-50 exp = 0-100%
@@ -183,6 +231,11 @@ export default function MyPage() {
   };
   
   const expPercent = calculateExpPercent(memberInfo.exp, memberInfo.level);
+=======
+  // 경험치 바 관련
+  const maxLevel = 3;
+  const expPercent = Math.min(memberInfo.exp, 100);
+>>>>>>> b0ee16a (work)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] flex flex-col items-center justify-center py-16 relative overflow-hidden">
@@ -207,6 +260,7 @@ export default function MyPage() {
         </div>
         <div className="w-full flex flex-col gap-10 items-center">
           {/* 내 정보 */}
+<<<<<<< HEAD
           <div className="w-full bg-white/90 rounded-3xl p-10 flex flex-col items-center shadow-xl border border-white/50 backdrop-blur-sm relative overflow-hidden">
             {/* 카드 상단 장식 */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5]"></div>
@@ -220,6 +274,10 @@ export default function MyPage() {
               </div>
               <div className="text-3xl font-bold text-[#2b6cb0]">내 정보</div>
             </div>
+=======
+          <div className="w-full bg-white/80 rounded-2xl p-10 flex flex-col items-center shadow-md">
+            <div className="text-2xl font-bold text-[#2b6cb0] mb-4">내 정보</div>
+>>>>>>> b0ee16a (work)
             
             {editing ? (
               <div className="w-full flex flex-col gap-6">
@@ -275,6 +333,7 @@ export default function MyPage() {
               </div>
             ) : (
               <>
+<<<<<<< HEAD
                 <div className="w-full space-y-4 mb-6">
                   <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-[#f8fafc] to-[#e6f1fb] rounded-2xl border border-[#e0e7ef]/50">
                     <div className="w-10 h-10 bg-gradient-to-br from-[#7f9cf5] to-[#43e6b5] rounded-full flex items-center justify-center">
@@ -302,6 +361,11 @@ export default function MyPage() {
                 </div>
                 
                 <div className="flex flex-row gap-4 w-full justify-end items-center">
+=======
+                <div className="text-xl text-[#383838] font-semibold mb-1">이름: <span className="font-normal">{memberInfo.name}</span></div>
+                <div className="text-xl text-[#383838] font-semibold mb-4">이메일: <span className="font-normal">{memberInfo.email}</span></div>
+                <div className="flex flex-row gap-4 mt-2 w-full justify-end items-center">
+>>>>>>> b0ee16a (work)
                   <button
                     onClick={handleEdit}
                     className="px-8 py-3 rounded-full bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 text-lg flex items-center gap-2"
@@ -381,6 +445,11 @@ export default function MyPage() {
                   </div>
                 </div>
               </div>
+<<<<<<< HEAD
+=======
+              <div className="text-lg text-[#2b6cb0] font-semibold">현재 경험치: {memberInfo.exp} / 100</div>
+              <div className="text-lg text-[#2b6cb0] font-semibold">현재 레벨: {memberInfo.level}</div>
+>>>>>>> b0ee16a (work)
             </div>
           </div>
         </div>

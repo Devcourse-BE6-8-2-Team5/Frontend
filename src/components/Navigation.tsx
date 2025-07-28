@@ -1,14 +1,20 @@
 "use client";
 
 import Link from "next/link";
+<<<<<<< HEAD
 import Image from "next/image";
 import { FaUserCircle } from "react-icons/fa";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
+=======
+import { FaUserCircle } from "react-icons/fa";
+import { useAuth } from "@/contexts/AuthContext";
+>>>>>>> b0ee16a (work)
 
 export default function Navigation() {
   const { isAuthenticated, user, logout } = useAuth();
 
+<<<<<<< HEAD
   // 디버깅용: 사용자 정보 출력
   useEffect(() => {
     if (user) {
@@ -17,6 +23,8 @@ export default function Navigation() {
     }
   }, [user]);
 
+=======
+>>>>>>> b0ee16a (work)
   const handleLogout = async () => {
     await logout();
   };
@@ -34,6 +42,7 @@ export default function Navigation() {
                 {user?.name}님
               </span>
               <Link href="/mypage" className="text-[#2b6cb0] hover:text-[#5ac7b2] transition">
+<<<<<<< HEAD
                 {user?.profileImgUrl ? (
                   <div className="w-8 h-8 rounded-full overflow-hidden">
                     <Image
@@ -47,6 +56,9 @@ export default function Navigation() {
                 ) : (
                   <FaUserCircle size={32} />
                 )}
+=======
+                <FaUserCircle size={32} />
+>>>>>>> b0ee16a (work)
               </Link>
             </div>
             <button 
