@@ -7,20 +7,21 @@ const isAdmin = true; // false로 바꾸면 일반 사용자 시나리오 테스
 
 // mock 데이터
 const mockUsers = [
-  { id: 1, name: 'test1', email: 'test1@example.com' },
-  { id: 2, name: 'test2', email: 'test2@example.com' },
-  { id: 3, name: 'test3', email: 'test3@example.com' },
+  { id: 1, name: '홍길동', email: 'hong@example.com' },
+  { id: 2, name: '김철수', email: 'kim@example.com' },
+  { id: 3, name: '이영희', email: 'lee@example.com' },
 ];
 const mockNews = [
-  { id: 1, title: '첫 번째 뉴스', author: 'test4', date: '2024-06-01' },
-  { id: 2, title: '두 번째 뉴스', author: 'test5', date: '2024-06-02' },
-  { id: 3, title: '세 번째 뉴스', author: 'test6', date: '2024-06-03' },
+  { id: 101, title: '첫 번째 뉴스', author: '홍길동', date: '2024-06-01' },
+  { id: 102, title: '두 번째 뉴스', author: '김철수', date: '2024-06-02' },
+  { id: 103, title: '세 번째 뉴스', author: '이영희', date: '2024-06-03' },
 ];
 
 export default function AdminPage() {
   const router = useRouter();
   const [users] = useState(mockUsers);
   const [news, setNews] = useState(mockNews);
+  const [todayNewsId, setTodayNewsId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -35,6 +36,32 @@ export default function AdminPage() {
     }
   };
 
+  const handleSetTodayNews = async (newsId: number) => {
+    try {
+      // 실제 API 연동 시 사용할 코드
+      // const response = await fetch('/api/admin/today-news', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({ newsId }),
+      // });
+      // if (response.ok) {
+      //   setTodayNewsId(newsId);
+      //   alert('오늘의 뉴스로 설정되었습니다!');
+      // } else {
+      //   alert('설정에 실패했습니다.');
+      // }
+
+      // mock 데이터용 임시 처리
+      setTodayNewsId(newsId);
+      alert('오늘의 뉴스로 설정되었습니다!');
+    } catch (error) {
+      console.error('오늘의 뉴스 설정 중 오류 발생:', error);
+      alert('설정 중 오류가 발생했습니다.');
+    }
+  };
+
   if (!isAdmin) return null;
 
   return (
@@ -43,7 +70,7 @@ export default function AdminPage() {
         <h1 className="text-4xl font-extrabold text-[#7f9cf5] mb-4 tracking-widest">관리자 페이지</h1>
         {/* 회원 목록 */}
         <section className="w-full">
-          <h2 className="text-2xl font-bold text-[#2b6cb0] mb-4">회원 조회</h2>
+          <h2 className="text-2xl font-bold text-[#2b6cb0] mb-4">모든 회원 조회</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -67,7 +94,7 @@ export default function AdminPage() {
         </section>
         {/* 뉴스 목록 */}
         <section className="w-full">
-          <h2 className="text-2xl font-bold text-[#2b6cb0] mb-4">뉴스 조회 및 삭제</h2>
+          <h2 className="text-2xl font-bold text-[#2b6cb0] mb-4">모든 뉴스 조회 및 관리</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -87,10 +114,22 @@ export default function AdminPage() {
                     <td className="py-2 px-4">{n.author}</td>
                     <td className="py-2 px-4">{n.date}</td>
                     <td className="py-2 px-4">
-                      <button
-                        onClick={() => handleDeleteNews(n.id)}
-                        className="px-3 py-1 rounded-full bg-red-400 text-white font-bold shadow hover:bg-red-600 transition-colors text-sm"
-                      >삭제</button>
+                      <div className="flex flex-row gap-2">
+                        <button
+                          onClick={() => handleSetTodayNews(n.id)}
+                          className={`px-3 py-1 rounded-full font-bold shadow transition-colors text-sm ${
+                            todayNewsId === n.id
+                              ? 'bg-green-500 text-white'
+                              : 'bg-[#7f9cf5] text-white hover:bg-[#5a7bd8]'
+                          }`}
+                        >
+                          {todayNewsId === n.id ? '오늘의 뉴스' : '오늘의 뉴스로 설정'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteNews(n.id)}
+                          className="px-3 py-1 rounded-full bg-red-400 text-white font-bold shadow hover:bg-red-600 transition-colors text-sm"
+                        >삭제</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
