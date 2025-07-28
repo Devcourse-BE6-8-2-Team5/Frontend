@@ -7,7 +7,7 @@ const isAdmin = true; // false로 바꾸면 일반 사용자 시나리오 테스
 
 // mock 데이터
 const mockUsers = [
-  { id: 1, name: '홍길동', email: 'hong@example.com' },
+  { id: 1, name: 'test1', email: 'test1@example.com' },
   { id: 2, name: '김철수', email: 'kim@example.com' },
   { id: 3, name: '이영희', email: 'lee@example.com' },
 ];
