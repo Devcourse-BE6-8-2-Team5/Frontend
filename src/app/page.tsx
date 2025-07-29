@@ -1,4 +1,5 @@
 "use client";
+<<<<<<< HEAD
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
@@ -36,6 +37,25 @@ export default function Home() {
     };
     fetchTodayNews();
   }, []);
+=======
+
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+
+export default function Home() {
+  const searchParams = useSearchParams();
+  
+  useEffect(() => {
+    const loginSuccess = searchParams.get('loginSuccess');
+    const message = searchParams.get('message');
+    
+    if (loginSuccess === 'true' && message) {
+      alert(message); // 카카오 로그인 성공 메시지 팝업
+    }
+  }, [searchParams]);
+>>>>>>> e757bc3 (feat: 카카오 소셜로그인 완료)
 
   return (
     <div className="font-sans min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] flex flex-col items-center relative">

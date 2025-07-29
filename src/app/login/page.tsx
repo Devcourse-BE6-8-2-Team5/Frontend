@@ -145,7 +145,7 @@ export default function LoginPage() {
         
         {/* 카카오 소셜로그인 */}
         <a 
-          href="http://localhost:8080/oauth2/authorization/kakao"
+          href="http://localhost:8080/oauth2/authorization/kakao?redirectUrl=http://localhost:3000/"
           className="group w-full flex items-center gap-3 justify-center h-10 text-base font-medium rounded-full shadow bg-[#FEE500] text-[#3C1E1E] hover:bg-[#FFEB3B] transition mb-1"
         >
           <Image src="/social/kakao_login.png" alt="카카오 로고" width={24} height={24} className="group-hover:opacity-70 transition" />
