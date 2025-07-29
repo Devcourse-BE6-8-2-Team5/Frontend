@@ -202,8 +202,15 @@ const dummySolvedQuizDetail: Record<string, {
   },
 };
 
-export default function OxQuizDetailPage() {
+interface PageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default function OxQuizDetailPage({ params }: PageProps) {
   const router = useRouter();
+  const { id } = params;
   const [quiz, setQuiz] = useState<typeof dummyQuizDetail['1'] | typeof dummySolvedQuizDetail['1'] | null>(null);
   const [selected, setSelected] = useState<'real' | 'fake' | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -213,63 +220,49 @@ export default function OxQuizDetailPage() {
   const [userQuizStatus, setUserQuizStatus] = useState<{ solved: boolean; isCorrect?: boolean; userAnswer?: 'real' | 'fake' } | null>(null);
 
   useEffect(() => {
-    // 세션스토리지에서 선택된 퀴즈 정보 가져오기
-    const selectedQuizData = sessionStorage.getItem('selectedOxQuiz');
-    console.log('선택된 퀴즈 데이터:', selectedQuizData);
-    if (!selectedQuizData) {
-      router.push('/oxquiz');
-      return;
-    }
-
-    try {
-      const selectedQuiz = JSON.parse(selectedQuizData);
-      const quizId = selectedQuiz.id.toString();
-      setCurrentQuizId(selectedQuiz.id);
-      console.log('현재 퀴즈 ID:', selectedQuiz.id);
-      
-      // 로컬스토리지에서 사용자 퀴즈 상태 확인
-      const savedStatus = localStorage.getItem('userOxQuizStatus');
-      console.log('저장된 퀴즈 상태:', savedStatus);
-      let isSolved = false;
-      let solvedData = null;
-      
-      if (savedStatus) {
-        const allUserStatus = JSON.parse(savedStatus);
-        console.log('전체 사용자 상태:', allUserStatus);
-        const currentStatus = allUserStatus[selectedQuiz.id];
-        console.log('현재 퀴즈 상태:', currentStatus);
-        if (currentStatus?.solved) {
-          isSolved = true;
-          setUserQuizStatus(currentStatus);
-          console.log('퀴즈가 이미 풀린 상태입니다');
-          // 풀이 완료된 경우 서버에서 풀이 결과 포함된 데이터 요청
-          // 실제로는 fetch(`/api/oxquiz/detail/${quizId}?solved=true`)로 받아오세요
-          solvedData = dummySolvedQuizDetail[quizId];
-        }
+    const quizId = id;
+    setCurrentQuizId(parseInt(quizId));
+    console.log('현재 퀴즈 ID:', quizId);
+    
+    // 로컬스토리지에서 사용자 퀴즈 상태 확인
+    const savedStatus = localStorage.getItem('userOxQuizStatus');
+    console.log('저장된 퀴즈 상태:', savedStatus);
+    let isSolved = false;
+    let solvedData = null;
+    
+    if (savedStatus) {
+      const allUserStatus = JSON.parse(savedStatus);
+      console.log('전체 사용자 상태:', allUserStatus);
+      const currentStatus = allUserStatus[quizId];
+      console.log('현재 퀴즈 상태:', currentStatus);
+      if (currentStatus?.solved) {
+        isSolved = true;
+        setUserQuizStatus(currentStatus);
+        console.log('퀴즈가 이미 풀린 상태입니다');
+        // 풀이 완료된 경우 서버에서 풀이 결과 포함된 데이터 요청
+        // 실제로는 fetch(`/api/oxquiz/detail/${quizId}?solved=true`)로 받아오세요
+        solvedData = dummySolvedQuizDetail[quizId];
       }
-      
-      if (isSolved && solvedData) {
-        // 풀이 완료된 데이터 사용
-        console.log('풀이 완료된 데이터 사용:', solvedData);
-        setQuiz(solvedData);
-      } else {
-        // 미풀이 데이터 사용
-        console.log('미풀이 데이터 사용');
-        // 실제로는 fetch(`/api/oxquiz/detail/${quizId}`)로 받아오세요
-        const quizData = dummyQuizDetail[quizId];
-        if (!quizData) {
-          router.push('/oxquiz');
-          return;
-        }
-        setQuiz(quizData);
-      }
-      
-      setLoading(false);
-    } catch (error) {
-      console.error('퀴즈 데이터 파싱 오류:', error);
-      router.push('/oxquiz');
     }
-  }, [router]);
+    
+    if (isSolved && solvedData) {
+      // 풀이 완료된 데이터 사용
+      console.log('풀이 완료된 데이터 사용:', solvedData);
+      setQuiz(solvedData);
+    } else {
+      // 미풀이 데이터 사용
+      console.log('미풀이 데이터 사용');
+      // 실제로는 fetch(`/api/oxquiz/detail/${quizId}`)로 받아오세요
+      const quizData = dummyQuizDetail[quizId];
+      if (!quizData) {
+        router.push('/oxquiz');
+        return;
+      }
+      setQuiz(quizData);
+    }
+    
+    setLoading(false);
+  }, [id, router]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">로딩 중...</div>;

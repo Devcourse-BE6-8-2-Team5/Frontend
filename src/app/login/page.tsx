@@ -144,10 +144,13 @@ export default function LoginPage() {
         </button>
         
         {/* 카카오 소셜로그인 */}
-        <button type="button" className="group w-full flex items-center gap-3 justify-center h-10 text-base font-medium rounded-full shadow bg-[#FEE500] text-[#3C1E1E] hover:bg-[#FFEB3B] transition mb-1">
+        <a 
+          href="http://localhost:8080/oauth2/authorization/kakao"
+          className="group w-full flex items-center gap-3 justify-center h-10 text-base font-medium rounded-full shadow bg-[#FEE500] text-[#3C1E1E] hover:bg-[#FFEB3B] transition mb-1"
+        >
           <Image src="/social/kakao_login.png" alt="카카오 로고" width={24} height={24} className="group-hover:opacity-70 transition" />
           <span>카카오로 로그인</span>
-        </button>
+        </a>  
         
         <Link href="/register" className="mt-4 text-center text-[#2b6cb0] font-semibold hover:underline">
           회원가입하기
