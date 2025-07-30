@@ -81,7 +81,7 @@ export default function AdminPage() {
       setNewsLoading(true);
       setNewsError(null);
       try {
-        const res = await fetch("/api/news?page=1&size=10&direction=desc");
+        const res = await fetch("/api/news?page=1&size=50&direction=desc");
         if (!res.ok) throw new Error("뉴스 목록 조회 실패");
         const data = await res.json();
         setNews(data.data.content || []);
@@ -159,7 +159,7 @@ export default function AdminPage() {
       <div className="absolute bottom-20 right-20 w-40 h-40 bg-gradient-to-br from-[#bfe0f5]/30 to-[#8fa4c3]/30 rounded-full blur-xl animate-pulse delay-1000"></div>
       <div className="absolute top-1/2 left-10 w-24 h-24 bg-gradient-to-br from-[#43e6b5]/25 to-[#7f9cf5]/25 rounded-full blur-lg animate-bounce"></div>
       
-      <div className="w-full max-w-7xl bg-white/90 rounded-3xl shadow-2xl p-12 flex flex-col gap-12 items-center relative overflow-hidden">
+      <div className="w-full max-w-8xl bg-white/90 rounded-3xl shadow-2xl p-12 flex flex-col gap-12 items-center relative overflow-hidden">
         {/* 상단 장식 라인 */}
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#7f9cf5] via-[#43e6b5] to-[#7f9cf5]"></div>
         
