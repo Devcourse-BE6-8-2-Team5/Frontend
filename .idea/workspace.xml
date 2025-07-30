@@ -5,15 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="181c4937-138a-40e3-b22f-fe5e6b158d0c" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/next.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/next.config.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/admin/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/page.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/mypage/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/mypage/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/news/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/news/[id]/page.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/news/[id]/quiz/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/news/[id]/quiz/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/page.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -122,7 +116,7 @@
       <workItem from="1753770923444" duration="774000" />
       <workItem from="1753771710605" duration="8000" />
       <workItem from="1753772551366" duration="5912000" />
-      <workItem from="1753833808591" duration="1066000" />
+      <workItem from="1753833808591" duration="6471000" />
     </task>
     <servers />
   </component>
