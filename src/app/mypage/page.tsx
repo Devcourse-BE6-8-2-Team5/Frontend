@@ -15,7 +15,7 @@ interface MemberInfo {
 }
 
 export default function MyPage() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, checkAuth } = useAuth();
   const router = useRouter();
   const [memberInfo, setMemberInfo] = useState<MemberInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,14 +25,23 @@ export default function MyPage() {
 
   // 인증 확인 및 회원 정보 조회
   useEffect(() => {
-    if (!isAuthenticated) {
-      alert('로그인이 필요합니다.');
-      router.replace('/login');
-      return;
-    }
+    const checkAuthAndFetchInfo = async () => {
+      // 먼저 인증 상태를 다시 확인
+      await checkAuth();
+      
+      // 인증이 되지 않은 경우
+      if (!isAuthenticated) {
+        alert('로그인이 필요합니다.');
+        router.replace('/login');
+        return;
+      }
 
-    fetchMemberInfo();
-  }, [isAuthenticated, router]);
+      // 인증된 경우 회원 정보 조회
+      fetchMemberInfo();
+    };
+
+    checkAuthAndFetchInfo();
+  }, []);
 
   // 퀴즈 완료 이벤트 감지하여 정보 새로고침
   useEffect(() => {
