@@ -136,13 +136,16 @@ export default function LoginPage() {
           <Image src="/social/naver_login.png" alt="네이버 로고" width={24} height={24} className="group-hover:opacity-80 transition" />
           <span>네이버로 로그인</span>
         </button>
-        
+
         {/* 구글 소셜로그인 */}
-        <button type="button" className="group w-full flex items-center gap-3 justify-center h-10 text-base font-medium rounded-full shadow bg-[#FFFFFF] border border-gray-300 text-[#3c4043] hover:bg-gray-50 transition mb-1">
+        <a 
+          href="http://localhost:8080/oauth2/authorization/google?redirectUrl=http://localhost:3000/"
+          className="group w-full flex items-center gap-3 justify-center h-10 text-base font-medium rounded-full shadow bg-[#FFFFFF] border border-gray-300 text-[#3c4043] hover:bg-gray-50 transition mb-1"
+        >
           <Image src="/social/google_login.png" alt="구글 로고" width={24} height={24} className="ml-[-13px] group-hover:opacity-80 transition" />
           <span>구글로 로그인</span>
-        </button>
-        
+        </a>  
+
         {/* 카카오 소셜로그인 */}
         <a 
           href="http://localhost:8080/oauth2/authorization/kakao?redirectUrl=http://localhost:3000/"
