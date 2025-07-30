@@ -11,6 +11,13 @@ interface DetailQuiz {
   correctOption: "OPTION1" | "OPTION2" | "OPTION3";
 }
 
+interface QuizResult {
+  details: { idx: number; is_correct: boolean; user_answer: string; correct_option: string }[];
+  correct_count: number;
+  exp_gained: number;
+  total_exp: number;
+}
+
 export default function NewsQuizPage() {
   const params = useParams();
   const newsId = params.id;
@@ -18,12 +25,7 @@ export default function NewsQuizPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [answers, setAnswers] = useState<{ [idx: number]: string }>({});
-  const [result, setResult] = useState<null | {
-    details: { idx: number; is_correct: boolean; user_answer: string; correct_option: string }[];
-    correct_count: number;
-    exp_gained: number;
-    total_exp: number;
-  }>(null);
+  const [result, setResult] = useState<QuizResult | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
 
@@ -68,27 +70,67 @@ export default function NewsQuizPage() {
     fetchNewsTitle();
   }, [newsId]);
 
-  const handleSubmit = () => {
-    const details = quizzes.map((q, idx) => {
-      const user_answer = answers[idx];
-      const correct_option = q.correctOption;
-      return {
-        idx,
-        is_correct: user_answer === correct_option,
-        user_answer: user_answer || "",
-        correct_option,
-      };
-    });
-    const correct_count = details.filter((d) => d.is_correct).length;
-    const exp_gained = correct_count * 2;
-    const total_exp = 100 + exp_gained; // 임시 누적 경험치
-    setResult({ details, correct_count, exp_gained, total_exp });
-    setShowResult(true);
+  const handleSubmit = async () => {
+    try {
+      // 각 퀴즈에 대해 백엔드에 히스토리 생성 요청 (실제 경험치 지급)
+      const historyPromises = quizzes.map(async (quiz, idx) => {
+        const user_answer = answers[idx];
+        if (!user_answer) return null;
+
+        const res = await fetch('/api/histories', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            quizId: parseInt(newsId as string) * 100 + idx + 1, // 뉴스ID * 100 + 퀴즈 인덱스로 고유 ID 생성
+            quizType: 'DETAIL',
+            answer: user_answer
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error('퀴즈 제출에 실패했습니다.');
+        }
+
+        return await res.json();
+      });
+
+      const historyResults = await Promise.all(historyPromises);
+      
+      // 결과 계산
+      const details = quizzes.map((q, idx) => {
+        const user_answer = answers[idx];
+        const correct_option = q.correctOption;
+        const historyResult = historyResults[idx];
+        
+        return {
+          idx,
+          is_correct: user_answer === correct_option,
+          user_answer: user_answer || "",
+          correct_option,
+        };
+      });
+      
+      const correct_count = details.filter((d) => d.is_correct).length;
+      const exp_gained = correct_count * 100; // 백엔드에서 정답당 100점 지급
+      const total_exp = 100 + exp_gained; // 임시 누적 경험치
+      
+      setResult({ details, correct_count, exp_gained, total_exp });
+      setShowResult(true);
+    } catch (error: any) {
+      console.error('퀴즈 제출 오류:', error);
+      alert('퀴즈 제출에 실패했습니다. 다시 시도해주세요.');
+    }
   };
 
   const handleCloseResult = () => {
     setShowResult(false);
     setQuizCompleted(true);
+    
+    // 퀴즈 완료 후 마이페이지 정보 새로고침을 위한 이벤트 발생
+    window.dispatchEvent(new CustomEvent('quizCompleted'));
   };
 
   // 뉴스 정보 카드

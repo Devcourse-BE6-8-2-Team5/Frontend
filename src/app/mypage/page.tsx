@@ -34,6 +34,19 @@ export default function MyPage() {
     fetchMemberInfo();
   }, [isAuthenticated, router]);
 
+  // 퀴즈 완료 이벤트 감지하여 정보 새로고침
+  useEffect(() => {
+    const handleQuizCompleted = () => {
+      fetchMemberInfo();
+    };
+
+    window.addEventListener('quizCompleted', handleQuizCompleted);
+    
+    return () => {
+      window.removeEventListener('quizCompleted', handleQuizCompleted);
+    };
+  }, []);
+
   const fetchMemberInfo = async () => {
     try {
       const response = await fetch('/api/members/info', {
@@ -152,13 +165,15 @@ export default function MyPage() {
     );
   }
 
-  // 경험치 바 관련
-  const maxLevel = 3;
-  // 예시: 레벨 1: 0~49, 2: 50~99, 3: 100~
-  let expPercent = 0;
-  if (memberInfo.level === 1) expPercent = Math.min(memberInfo.exp, 50) * 2;
-  else if (memberInfo.level === 2) expPercent = Math.min(memberInfo.exp - 50, 50) * 2;
-  else if (memberInfo.level === 3) expPercent = 100;
+  // 경험치 바 관련 (백엔드 로직과 일치)
+  const calculateExpPercent = (exp: number, level: number) => {
+    if (level === 1) return Math.min(exp, 50) * 2; // 0-50 exp = 0-100%
+    else if (level === 2) return Math.min(exp - 50, 50) * 2; // 50-100 exp = 0-100%
+    else if (level === 3) return 100; // 100+ exp = 100%
+    return 0;
+  };
+  
+  const expPercent = calculateExpPercent(memberInfo.exp, memberInfo.level);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] flex flex-col items-center justify-center py-16">
@@ -231,11 +246,7 @@ export default function MyPage() {
           <div className="w-full flex flex-col items-center gap-6 mt-2">
             {/* 캐릭터(아바타) */}
             <div className="w-32 h-32 rounded-full bg-gradient-to-b from-[#7f9cf5] to-[#bfe0f5] flex items-center justify-center shadow-lg border-4 border-white overflow-hidden">
-              {memberInfo.characterImage ? (
-                <img src={memberInfo.characterImage} alt="캐릭터" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-6xl select-none">🐣</span>
-              )}
+              <span className="text-6xl select-none">{memberInfo.characterImage || "🐣"}</span>
             </div>
             {/* 레벨/경험치 바 */}
             <div className="w-full flex flex-col items-center">
