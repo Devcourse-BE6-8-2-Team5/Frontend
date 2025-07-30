@@ -1,41 +1,21 @@
 "use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
-
-interface TodayNews {
-  id: number;
-  title: string;
-  imgUrl?: string;
-}
+import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 export default function Home() {
-  const [todayNews, setTodayNews] = useState<TodayNews | null>(null);
-  const [loading, setLoading] = useState(true);
-
+  const searchParams = useSearchParams();
+  
   useEffect(() => {
-    const fetchTodayNews = async () => {
-      try {
-        const res = await fetch("/api/news/today");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.code === 200 && data.data) {
-          setTodayNews({
-            id: data.data.id,
-            title: data.data.title,
-            imgUrl: data.data.imgUrl || "",
-          });
-        } else {
-          setTodayNews(null);
-        }
-      } catch {
-        setTodayNews(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTodayNews();
-  }, []);
+    const loginSuccess = searchParams.get('loginSuccess');
+    const message = searchParams.get('message');
+    
+    if (loginSuccess === 'true' && message) {
+      alert(message); // 카카오 로그인 성공 메시지 팝업
+    }
+  }, [searchParams]);
 
   return (
     <div className="font-sans min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] flex flex-col items-center relative">
@@ -44,32 +24,8 @@ export default function Home() {
       <div className="flex flex-col items-center w-full gap-10 mt-2 pt-20">
         <div className="flex flex-row gap-8 w-full max-w-4xl justify-center">
           {/* 오늘의 뉴스 카드 */}
-          <Link href="/todaynews" className="flex-1 min-w-[260px] max-w-[400px] h-[180px] rounded-3xl bg-gradient-to-b from-[#bfe0f5] via-[#8fa4c3] via-70% to-[#e6f1fb] flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer overflow-hidden relative group">
-            {loading ? (
-              <span className="text-2xl text-white">로딩 중...</span>
-            ) : todayNews && todayNews.imgUrl ? (
-              <>
-                <Image
-                  src={todayNews.imgUrl}
-                  alt="오늘의 뉴스 이미지"
-                  fill
-                  className="object-cover w-full h-full absolute top-0 left-0 z-0 transition-transform group-hover:scale-105"
-                  style={{ filter: 'brightness(0.7)' }}
-                  priority
-                />
-                {/* 하단 그라데이션 오버레이 */}
-                <div className="absolute left-0 right-0 bottom-0 h-2/5 bg-gradient-to-t from-black/70 to-transparent z-10" />
-                <span className="z-20 absolute left-0 right-0 bottom-0 pb-4 text-2xl sm:text-3xl font-extrabold text-white drop-shadow-md text-center px-2 line-clamp-2">
-                  {todayNews.title}
-                </span>
-              </>
-            ) : todayNews ? (
-              <span className="text-2xl sm:text-3xl font-extrabold text-white drop-shadow-md text-center px-2 line-clamp-2">
-                {todayNews.title}
-              </span>
-            ) : (
-              <span className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-md">오늘의 뉴스</span>
-            )}
+          <Link href="/todaynews" className="flex-1 min-w-[260px] max-w-[400px] h-[180px] rounded-3xl bg-gradient-to-b from-[#bfe0f5] via-[#8fa4c3] via-70% to-[#e6f1fb] flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
+            <span className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-md">오늘의 뉴스</span>
           </Link>
           {/* OX 퀴즈 카드 */}
           <Link href="/oxquiz" className="flex-1 min-w-[260px] max-w-[400px] h-[180px] rounded-3xl bg-gradient-to-b from-[#bfe0f5] via-[#8fa4c3] via-70% to-[#e6f1fb] flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">

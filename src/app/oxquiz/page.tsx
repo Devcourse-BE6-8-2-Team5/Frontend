@@ -54,13 +54,7 @@ export default function OxQuizMainPage() {
     ? dummyQuizzes
     : dummyQuizzes.filter(q => q.category === selectedCategory);
 
-  const handleQuizClick = (quizId: number) => {
-    // 선택된 퀴즈 정보를 세션스토리지에 저장
-    const selectedQuiz = dummyQuizzes.find(q => q.id === quizId);
-    if (selectedQuiz) {
-      sessionStorage.setItem('selectedOxQuiz', JSON.stringify(selectedQuiz));
-    }
-  };
+
 
   // 퀴즈 제출 후 상태 업데이트 (실제로는 API 응답 후 호출)
   const updateQuizStatus = (quizId: number, isCorrect: boolean, userAnswer: 'real' | 'fake') => {
@@ -115,8 +109,7 @@ export default function OxQuizMainPage() {
             return (
               <li key={quiz.id} className="w-full">
                 <Link 
-                  href="/oxquiz/detail" 
-                  onClick={() => handleQuizClick(quiz.id)}
+                  href={`/oxquiz/detail/${quiz.id}`}
                   className={`block w-full p-6 rounded-xl shadow hover:scale-[1.02] transition-transform border cursor-pointer
                     ${isSolved 
                       ? 'bg-gradient-to-r from-[#f0f9ff] to-[#e0f2fe] border-[#0ea5e9]' 
