@@ -95,31 +95,58 @@ export default function TodayQuizPage() {
           {MOCK_QUIZZES.map((quiz, idx) => {
             const d = result.details[idx];
             return (
-              <div key={quiz.quiz_id} className="mb-4 w-full pb-4 border-b border-[#e6eaf3] bg-[#f7fafd] rounded-xl">
-                <div className="font-bold text-lg mb-2 flex items-center justify-center gap-2">
-                  <span>{idx + 1}. {quiz.question}</span>
+              <div key={quiz.quiz_id} className="mb-4 w-full pb-4 border-b border-[#e6eaf3] bg-[#f7fafd] rounded-xl p-4">
+                <div className="font-bold text-lg mb-4 flex items-center justify-center gap-2">
+                  <span className="bg-[#2b6cb0] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-2">
+                    {idx + 1}
+                  </span>
+                  {quiz.question}
                 </div>
-                <div className="flex flex-col gap-2 items-center justify-center text-center">
+                <div className="grid grid-cols-1 gap-3">
                   {["option_a", "option_b", "option_c"].map((opt) => {
                     const isUser = d.user_answer === opt;
                     const isCorrect = d.correct_option === opt;
+                    const optionText = quiz[opt as "option_a" | "option_b" | "option_c"];
+                    const optionLabel = opt === "option_a" ? "A" : opt === "option_b" ? "B" : "C";
+                    
                     return (
-                      <label
+                      <div
                         key={opt}
-                        className={`flex items-center gap-2 rounded px-2 py-1
-                          ${isUser && !d.is_correct ? "text-red-600 font-bold" : ""}
-                          ${isCorrect ? "text-green-700 font-bold" : ""}
-                        `}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          isUser && !d.is_correct 
+                            ? "border-red-300 bg-red-50" 
+                            : isCorrect 
+                            ? "border-green-300 bg-green-50" 
+                            : "border-gray-200 bg-white"
+                        }`}
                       >
-                        <input
-                          type="radio"
-                          name={`quiz_${quiz.quiz_id}`}
-                          value={opt}
-                          checked={isUser}
-                          disabled
-                        />
-                        <span>{quiz[opt as "option_a" | "option_b" | "option_c"]}</span>
-                      </label>
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                            isUser && !d.is_correct 
+                              ? "bg-red-500 text-white" 
+                              : isCorrect 
+                              ? "bg-green-500 text-white" 
+                              : "bg-gray-200 text-gray-600"
+                          }`}>
+                            {optionLabel}
+                          </div>
+                          <span className={`font-medium ${
+                            isUser && !d.is_correct 
+                              ? "text-red-700" 
+                              : isCorrect 
+                              ? "text-green-700" 
+                              : "text-gray-700"
+                          }`}>
+                            {optionText}
+                          </span>
+                          {isUser && !d.is_correct && (
+                            <span className="ml-auto text-red-500 font-bold">✗</span>
+                          )}
+                          {isCorrect && (
+                            <span className="ml-auto text-green-500 font-bold">✓</span>
+                          )}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -149,36 +176,85 @@ export default function TodayQuizPage() {
     <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-8 px-4">
       <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center gap-8 mb-10">
         {NewsInfoCard}
+        
+        {/* 진행 상황 표시 */}
+        <div className="w-full mb-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm text-gray-600">진행 상황</span>
+            <span className="text-sm font-semibold text-[#2b6cb0]">
+              {Object.keys(answers).length} / {MOCK_QUIZZES.length}
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-[#2b6cb0] h-2 rounded-full transition-all duration-300"
+              style={{ width: `${(Object.keys(answers).length / MOCK_QUIZZES.length) * 100}%` }}
+            ></div>
+          </div>
+        </div>
+
         <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] mb-3 text-center">오늘의 퀴즈</h1>
+        
         <div className="w-full flex flex-col items-center">
           {MOCK_QUIZZES.map((quiz, idx) => (
-            <div key={quiz.quiz_id} className="mb-8 w-full flex flex-col items-center">
-              <div className="font-semibold mb-2 text-center w-full">{idx + 1}. {quiz.question}</div>
-              <div className="flex flex-col gap-2 w-full items-center">
-                {["option_a", "option_b", "option_c"].map((opt) => (
-                  <label key={opt} className="flex items-center gap-2 cursor-pointer w-full justify-center">
-                    <input
-                      type="radio"
-                      name={`quiz_${quiz.quiz_id}`}
-                      value={opt}
-                      checked={answers[quiz.quiz_id] === opt}
-                      onChange={() => setAnswers((prev) => ({ ...prev, [quiz.quiz_id]: opt }))}
-                      disabled={!!result}
-                    />
-                    <span>{quiz[opt as "option_a" | "option_b" | "option_c"]}</span>
-                  </label>
-                ))}
+            <div key={quiz.quiz_id} className="mb-8 w-full">
+              <div className="font-bold text-lg mb-4 flex items-center gap-2">
+                <span className="bg-[#2b6cb0] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                  {idx + 1}
+                </span>
+                {quiz.question}
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                {["option_a", "option_b", "option_c"].map((opt) => {
+                  const isSelected = answers[quiz.quiz_id] === opt;
+                  const optionText = quiz[opt as "option_a" | "option_b" | "option_c"];
+                  const optionLabel = opt === "option_a" ? "A" : opt === "option_b" ? "B" : "C";
+                  
+                  return (
+                    <button
+                      key={opt}
+                      onClick={() => setAnswers((prev) => ({ ...prev, [quiz.quiz_id]: opt }))}
+                      className={`p-4 rounded-lg border-2 transition-all text-left hover:shadow-md ${
+                        isSelected 
+                          ? "border-[#2b6cb0] bg-[#e6f1fb]" 
+                          : "border-gray-200 bg-white hover:border-gray-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                          isSelected 
+                            ? "bg-[#2b6cb0] text-white" 
+                            : "bg-gray-200 text-gray-600"
+                        }`}>
+                          {optionLabel}
+                        </div>
+                        <span className={`font-medium ${
+                          isSelected 
+                            ? "text-[#2b6cb0]" 
+                            : "text-gray-700"
+                        }`}>
+                          {optionText}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ))}
         </div>
+        
         {!result && (
           <button
-            className="w-full py-3 rounded-full bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold text-lg shadow hover:opacity-90 transition mt-8"
+            className={`w-full py-4 rounded-xl font-bold text-lg shadow transition-all ${
+              Object.keys(answers).length === MOCK_QUIZZES.length
+                ? "bg-[#2b6cb0] text-white hover:bg-[#1e40af]"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
             onClick={handleSubmit}
-            disabled={Object.keys(answers).length !== 3}
+            disabled={Object.keys(answers).length !== MOCK_QUIZZES.length}
           >
-            퀴즈 제출
+            {Object.keys(answers).length === MOCK_QUIZZES.length ? "퀴즈 제출하기" : "모든 문제를 풀어주세요"}
           </button>
         )}
       </div>
