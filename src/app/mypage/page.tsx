@@ -10,6 +10,8 @@ interface MemberInfo {
   exp: number;
   level: number;
   role: string;
+  characterImage?: string;
+  password?: string; // 프론트에서만 사용
 }
 
 export default function MyPage() {
@@ -19,7 +21,7 @@ export default function MyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<MemberInfo | null>(null);
+  const [form, setForm] = useState<MemberInfo & { password?: string } | null>(null);
 
   // 인증 확인 및 회원 정보 조회
   useEffect(() => {
@@ -63,11 +65,35 @@ export default function MyPage() {
     setEditing(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (form) {
-      setMemberInfo(form);
-      setEditing(false);
-      alert('정보가 수정되었습니다.');
+      if (!form.password || form.password.length < 8) {
+        alert('비밀번호는 8자 이상 입력해야 합니다.');
+        return;
+      }
+      try {
+        const response = await fetch('/api/members/info', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            name: form.name,
+            password: form.password,
+            email: form.email,
+          }),
+        });
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || '회원 정보 수정에 실패했습니다.');
+        }
+        const data = await response.json();
+        setMemberInfo(data.data);
+        setForm(data.data);
+        setEditing(false);
+        alert('정보가 수정되었습니다.');
+      } catch (e: any) {
+        alert(e.message || '회원 정보 수정에 실패했습니다.');
+      }
     }
   };
 
@@ -78,10 +104,27 @@ export default function MyPage() {
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (window.confirm('정말로 탈퇴하시겠습니까?')) {
-      alert('탈퇴되었습니다.');
-      // TODO: 실제 탈퇴 API 호출
+      try {
+        const response = await fetch('/api/members/withdraw', {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || '탈퇴에 실패했습니다.');
+        }
+        // 로그아웃 처리
+        await fetch('/api/members/logout', {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+        alert('탈퇴되었습니다.');
+        router.replace('/');
+      } catch (e: any) {
+        alert(e.message || '탈퇴에 실패했습니다.');
+      }
     }
   };
 
@@ -111,7 +154,11 @@ export default function MyPage() {
 
   // 경험치 바 관련
   const maxLevel = 3;
-  const expPercent = Math.min(memberInfo.exp, 100);
+  // 예시: 레벨 1: 0~49, 2: 50~99, 3: 100~
+  let expPercent = 0;
+  if (memberInfo.level === 1) expPercent = Math.min(memberInfo.exp, 50) * 2;
+  else if (memberInfo.level === 2) expPercent = Math.min(memberInfo.exp - 50, 50) * 2;
+  else if (memberInfo.level === 3) expPercent = 100;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] flex flex-col items-center justify-center py-16">
@@ -145,6 +192,17 @@ export default function MyPage() {
                     className="px-4 py-2 rounded-xl border border-[#e0e7ef] focus:outline-none focus:ring-2 focus:ring-[#7f9cf5] bg-white/90 text-[#383838] font-medium shadow"
                   />
                 </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[#2b6cb0] font-semibold">비밀번호</label>
+                  <input
+                    name="password"
+                    type="password"
+                    value={form?.password || ''}
+                    onChange={handleChange}
+                    className="px-4 py-2 rounded-xl border border-[#e0e7ef] focus:outline-none focus:ring-2 focus:ring-[#7f9cf5] bg-white/90 text-[#383838] font-medium shadow"
+                    placeholder="10자 이상 입력"
+                  />
+                </div>
                 <div className="flex flex-row gap-4 mt-6 w-full justify-end items-center">
                   <button
                     onClick={handleSave}
@@ -172,13 +230,16 @@ export default function MyPage() {
           {/* 캐릭터 & 레벨/경험치 */}
           <div className="w-full flex flex-col items-center gap-6 mt-2">
             {/* 캐릭터(아바타) */}
-            <div className="w-32 h-32 rounded-full bg-gradient-to-b from-[#7f9cf5] to-[#bfe0f5] flex items-center justify-center shadow-lg border-4 border-white">
-              <span className="text-6xl select-none">🐣</span>
+            <div className="w-32 h-32 rounded-full bg-gradient-to-b from-[#7f9cf5] to-[#bfe0f5] flex items-center justify-center shadow-lg border-4 border-white overflow-hidden">
+              {memberInfo.characterImage ? (
+                <img src={memberInfo.characterImage} alt="캐릭터" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-6xl select-none">🐣</span>
+              )}
             </div>
             {/* 레벨/경험치 바 */}
             <div className="w-full flex flex-col items-center">
               <div className="flex flex-row justify-between w-full text-base text-[#2b6cb0] font-bold mb-2">
-                <span>0레벨</span>
                 <span>1레벨</span>
                 <span>2레벨</span>
                 <span>3레벨</span>
@@ -189,7 +250,7 @@ export default function MyPage() {
                   style={{ width: `${expPercent}%` }}
                 />
               </div>
-              <div className="text-lg text-[#2b6cb0] font-semibold">현재 경험치: {memberInfo.exp} / 100</div>
+              <div className="text-lg text-[#2b6cb0] font-semibold">현재 경험치: {memberInfo.exp}</div>
               <div className="text-lg text-[#2b6cb0] font-semibold">현재 레벨: {memberInfo.level}</div>
             </div>
           </div>

@@ -1,43 +1,101 @@
 "use client"
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 
-// mock 데이터 (실제 API 연동 시 대체)
-const mockNews = {
-  title: 'AI가 만든 가짜뉴스와 진짜뉴스, 어떻게 구별할까?',
-  content: `최근 AI 기술의 발달로 가짜뉴스가 더욱 정교해지고 있습니다. 이에 따라 진짜뉴스와 가짜뉴스를 구별하는 것이 점점 더 중요해지고 있습니다. 전문가들은 출처 확인, 맥락 파악, AI 기반 진위 판별 서비스 활용 등을 권장합니다.`,
-  date: '2024-06-01',
-  reporter: '홍길동 기자',
-  source: '연합뉴스',
-  image_url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
-};
+interface NewsDetail {
+  id: number;
+  title: string;
+  content: string;
+  originCreatedDate?: string;
+  createdDate?: string;
+  author?: string;
+  source?: string;
+  imgUrl?: string;
+  imageUrl?: string;
+}
 
 export default function NewsDetailPage() {
   const router = useRouter();
   const params = useParams();
   const newsId = params.id;
 
+  const [news, setNews] = useState<NewsDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!newsId) return;
+    const fetchNews = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/news/${newsId}`);
+        if (!res.ok) throw new Error('뉴스를 불러오지 못했습니다.');
+        const data = await res.json();
+        if (data.code !== 200 || !data.data) {
+          throw new Error(data.message || '뉴스를 찾을 수 없습니다.');
+        }
+        setNews({ ...data.data, imageUrl: data.data.imgUrl });
+      } catch (e: any) {
+        setError(e.message || '알 수 없는 오류');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNews();
+  }, [newsId]);
+
   const handleQuiz = () => {
     router.push(`/news/${newsId}/quiz`);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+        <div className="text-lg text-gray-500">로딩 중...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+        <div className="text-red-500 text-lg">{error}</div>
+      </div>
+    );
+  }
+
+  if (!news) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+        <div className="text-gray-500 text-lg">뉴스를 찾을 수 없습니다.</div>
+      </div>
+    );
+  }
 
   return (
       <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-8 px-4">
         <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-4 mb-10">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] mb-2 text-center">뉴스 상세</h1>
-          {mockNews.image_url && (
-              <div className="w-full flex justify-center mb-4">
-                <Image src={mockNews.image_url} alt="뉴스 이미지" width={600} height={300} className="rounded-xl object-cover max-h-60 w-auto" />
-              </div>
+          {news.imageUrl && (
+            <div className="w-full h-60 relative mb-4 rounded-xl overflow-hidden">
+              <Image
+                src={news.imageUrl}
+                alt="뉴스 이미지"
+                fill
+                className="object-cover w-full h-60 rounded-xl"
+                priority
+              />
+            </div>
           )}
-          <div className="text-2xl font-bold mb-2 text-center">{mockNews.title}</div>
+          <div className="text-2xl font-bold mb-2 text-center">{news.title}</div>
           <div className="text-gray-500 text-sm mb-1 flex flex-wrap gap-2 items-center">
-            <span>{mockNews.date}</span>
-            <span>· {mockNews.reporter}</span>
-            <span className="px-2 py-0.5 bg-[#e6f1fb] rounded text-[#2b6cb0] font-semibold ml-2">{mockNews.source}</span>
+            <span>{news.originCreatedDate || news.createdDate}</span>
+            {news.author && <span>· {news.author}</span>}
+            {news.source && <span className="px-2 py-0.5 bg-[#e6f1fb] rounded text-[#2b6cb0] font-semibold ml-2">{news.source}</span>}
           </div>
-          <div className="text-base text-gray-800 leading-relaxed whitespace-pre-line">{mockNews.content}</div>
+          <div className="text-base text-gray-800 leading-relaxed whitespace-pre-line">{news.content}</div>
         </div>
         <button
             onClick={handleQuiz}

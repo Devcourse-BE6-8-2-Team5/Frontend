@@ -1,43 +1,25 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FaRegNewspaper } from "react-icons/fa";
 import { useParams } from "next/navigation";
 
-// 임시(목업) 데이터: 뉴스 제목 (실제로는 뉴스 ID로 API 호출)
-const NEWS_TITLE = "AI가 만든 가짜뉴스와 진짜뉴스, 어떻게 구별할까?";
-
-// 임시(목업) 데이터: 상세 퀴즈 3문제
-const MOCK_QUIZZES = [
-  {
-    quiz_id: 201,
-    question: "AI가 만든 가짜뉴스와 진짜뉴스를 구별하는 방법은?",
-    option_a: "출처 확인",
-    option_b: "AI가 만든 뉴스만 읽기",
-    option_c: "아무거나 믿기",
-  },
-  {
-    quiz_id: 202,
-    question: "AI 뉴스의 위험성은?",
-    option_a: "정보의 신뢰성 저하",
-    option_b: "정보의 신뢰성 향상",
-    option_c: "정보가 없어짐",
-  },
-  {
-    quiz_id: 203,
-    question: "가짜뉴스를 판별하는 데 도움이 되는 것은?",
-    option_a: "AI 기반 진위 판별 서비스",
-    option_b: "카더라 통신",
-    option_c: "무작위 선택",
-  },
-];
+interface DetailQuiz {
+  question: string;
+  option1: string;
+  option2: string;
+  option3: string;
+  correctOption: "OPTION1" | "OPTION2" | "OPTION3";
+}
 
 export default function NewsQuizPage() {
   const params = useParams();
   const newsId = params.id;
-  
-  const [answers, setAnswers] = useState<{ [quizId: number]: string }>({});
+  const [quizzes, setQuizzes] = useState<DetailQuiz[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<{ [idx: number]: string }>({});
   const [result, setResult] = useState<null | {
-    details: { quiz_id: number; is_correct: boolean; user_answer: string; correct_option: string }[];
+    details: { idx: number; is_correct: boolean; user_answer: string; correct_option: string }[];
     correct_count: number;
     exp_gained: number;
     total_exp: number;
@@ -45,18 +27,53 @@ export default function NewsQuizPage() {
   const [showResult, setShowResult] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
 
-  const CORRECT_OPTIONS: { [quizId: number]: string } = {
-    201: "option_a",
-    202: "option_a",
-    203: "option_a",
-  };
+  // 뉴스 제목도 API로 받아오고 싶으면 추가 fetch 필요
+  const [newsTitle, setNewsTitle] = useState<string>("");
+
+  useEffect(() => {
+    if (!newsId) return;
+    const fetchQuizzes = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/quiz/detail/news/${newsId}`);
+        if (!res.ok) throw new Error("퀴즈를 불러오지 못했습니다.");
+        const data = await res.json();
+        if (data.code !== 200 || !data.data || data.data.length === 0) {
+          throw new Error(data.message || "퀴즈가 없습니다.");
+        }
+        setQuizzes(data.data);
+      } catch (e: any) {
+        setError(e.message || "알 수 없는 오류");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchQuizzes();
+  }, [newsId]);
+
+  // 뉴스 제목도 불러오기 (선택)
+  useEffect(() => {
+    if (!newsId) return;
+    const fetchNewsTitle = async () => {
+      try {
+        const res = await fetch(`/api/news/${newsId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.code === 200 && data.data && data.data.title) {
+          setNewsTitle(data.data.title);
+        }
+      } catch {}
+    };
+    fetchNewsTitle();
+  }, [newsId]);
 
   const handleSubmit = () => {
-    const details = MOCK_QUIZZES.map((q) => {
-      const user_answer = answers[q.quiz_id];
-      const correct_option = CORRECT_OPTIONS[q.quiz_id];
+    const details = quizzes.map((q, idx) => {
+      const user_answer = answers[idx];
+      const correct_option = q.correctOption;
       return {
-        quiz_id: q.quiz_id,
+        idx,
         is_correct: user_answer === correct_option,
         user_answer: user_answer || "",
         correct_option,
@@ -82,11 +99,26 @@ export default function NewsQuizPage() {
         <FaRegNewspaper className="text-[#2b6cb0] text-xl" />
         <span className="text-[#2b6cb0] font-bold text-base">뉴스 상세</span>
       </div>
-      <div className="text-lg sm:text-xl font-semibold text-[#222] text-center mb-1">{NEWS_TITLE}</div>
+      <div className="text-lg sm:text-xl font-semibold text-[#222] text-center mb-1">{newsTitle}</div>
     </div>
   );
 
-  // 퀴즈 완료 후 보여줄 UI
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+        <div className="text-lg text-gray-500">로딩 중...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+        <div className="text-red-500 text-lg">{error}</div>
+      </div>
+    );
+  }
+
   if (quizCompleted && result) {
     return (
       <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-8 px-4">
@@ -96,15 +128,15 @@ export default function NewsQuizPage() {
             상세 퀴즈
             <span className="bg-[#e6f1fb] text-[#2b6cb0] rounded-full px-3 py-1 text-sm font-semibold ml-2">완료</span>
           </h1>
-          {MOCK_QUIZZES.map((quiz, idx) => {
+          {quizzes.map((quiz, idx) => {
             const d = result.details[idx];
             return (
-              <div key={quiz.quiz_id} className="mb-4 w-full pb-4 border-b border-[#e6eaf3] bg-[#f7fafd] rounded-xl">
+              <div key={idx} className="mb-4 w-full pb-4 border-b border-[#e6eaf3] bg-[#f7fafd] rounded-xl">
                 <div className="font-bold text-lg mb-2 flex items-center justify-center gap-2">
                   <span>{idx + 1}. {quiz.question}</span>
                 </div>
                 <div className="flex flex-col gap-2 items-center justify-center text-center">
-                  {["option_a", "option_b", "option_c"].map((opt) => {
+                  {["OPTION1", "OPTION2", "OPTION3"].map((opt) => {
                     const isUser = d.user_answer === opt;
                     const isCorrect = d.correct_option === opt;
                     return (
@@ -117,12 +149,12 @@ export default function NewsQuizPage() {
                       >
                         <input
                           type="radio"
-                          name={`quiz_${quiz.quiz_id}`}
+                          name={`quiz_${idx}`}
                           value={opt}
                           checked={isUser}
                           disabled
                         />
-                        <span>{quiz[opt as "option_a" | "option_b" | "option_c"]}</span>
+                        <span>{quiz[opt.toLowerCase() as "option1" | "option2" | "option3"]}</span>
                       </label>
                     );
                   })}
@@ -133,7 +165,7 @@ export default function NewsQuizPage() {
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-[#f7fafd] rounded-xl p-4 flex flex-col items-center shadow">
               <div className="text-xs text-gray-500 mb-1">총 정답</div>
-              <div className="text-xl font-bold text-[#2b6cb0]">3개 중 {result.correct_count}개</div>
+              <div className="text-xl font-bold text-[#2b6cb0]">{quizzes.length}개 중 {result.correct_count}개</div>
             </div>
             <div className="bg-[#e6f1fb] rounded-xl p-4 flex flex-col items-center shadow">
               <div className="text-xs text-gray-500 mb-1">상세 퀴즈 경험치</div>
@@ -155,21 +187,21 @@ export default function NewsQuizPage() {
         {NewsInfoCard}
         <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] mb-3 text-center">상세 퀴즈</h1>
         <div className="w-full flex flex-col items-center">
-          {MOCK_QUIZZES.map((quiz, idx) => (
-            <div key={quiz.quiz_id} className="mb-8 w-full flex flex-col items-center">
+          {quizzes.map((quiz, idx) => (
+            <div key={idx} className="mb-8 w-full flex flex-col items-center">
               <div className="font-semibold mb-2 text-center w-full">{idx + 1}. {quiz.question}</div>
               <div className="flex flex-col gap-2 w-full items-center">
-                {["option_a", "option_b", "option_c"].map((opt) => (
+                {["OPTION1", "OPTION2", "OPTION3"].map((opt) => (
                   <label key={opt} className="flex items-center gap-2 cursor-pointer w-full justify-center">
                     <input
                       type="radio"
-                      name={`quiz_${quiz.quiz_id}`}
+                      name={`quiz_${idx}`}
                       value={opt}
-                      checked={answers[quiz.quiz_id] === opt}
-                      onChange={() => setAnswers((prev) => ({ ...prev, [quiz.quiz_id]: opt }))}
+                      checked={answers[idx] === opt}
+                      onChange={() => setAnswers((prev) => ({ ...prev, [idx]: opt }))}
                       disabled={!!result}
                     />
-                    <span>{quiz[opt as "option_a" | "option_b" | "option_c"]}</span>
+                    <span>{quiz[opt.toLowerCase() as "option1" | "option2" | "option3"]}</span>
                   </label>
                 ))}
               </div>
@@ -180,7 +212,7 @@ export default function NewsQuizPage() {
           <button
             className="w-full py-3 rounded-full bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold text-lg shadow hover:opacity-90 transition mt-8"
             onClick={handleSubmit}
-            disabled={Object.keys(answers).length !== 3}
+            disabled={Object.keys(answers).length !== quizzes.length}
           >
             퀴즈 제출
           </button>
@@ -193,13 +225,13 @@ export default function NewsQuizPage() {
           <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md flex flex-col gap-4">
             <h2 className="text-xl font-bold text-[#2b6cb0] mb-2">퀴즈 결과</h2>
             {result.details.map((d, idx) => (
-              <div key={d.quiz_id} className="flex flex-col mb-2">
+              <div key={d.idx} className="flex flex-col mb-2">
                 <span>
                   {idx + 1}번 문제: {d.is_correct ? "정답" : "오답"}
                   <span className="ml-2 text-sm text-gray-500">
-                    (내 답: {MOCK_QUIZZES[idx][d.user_answer as "option_a" | "option_b" | "option_c"] || "-"}
+                    (내 답: {quizzes[idx][d.user_answer.toLowerCase() as "option1" | "option2" | "option3"] || "-"}
                     { !d.is_correct && (
-                      <> / 정답: {MOCK_QUIZZES[idx][d.correct_option as "option_a" | "option_b" | "option_c"]}</>
+                      <> / 정답: {quizzes[idx][d.correct_option.toLowerCase() as "option1" | "option2" | "option3"]}</>
                     )}
                     )
                   </span>
@@ -207,7 +239,7 @@ export default function NewsQuizPage() {
               </div>
             ))}
             <div className="mt-2 font-semibold">
-              총 정답: <span className="text-[#2b6cb0]">3개 중 {result.correct_count}개</span><br />
+              총 정답: <span className="text-[#2b6cb0]">{quizzes.length}개 중 {result.correct_count}개</span><br />
               상세 퀴즈로 얻은 경험치: <span className="text-[#43e6b5]">{result.exp_gained}점</span><br />
               누적 경험치: <span className="text-[#7f9cf5]">{result.total_exp}점</span>
             </div>
