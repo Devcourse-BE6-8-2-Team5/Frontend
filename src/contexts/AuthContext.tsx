@@ -7,6 +7,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  profileImgUrl?: string;
 }
 
 interface AuthContextType {
@@ -36,9 +37,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const login = (userData: User) => {
-    setUser(userData);
+    // profileImgUrl이 없으면 빈 문자열로 설정
+    const userWithProfile = {
+      ...userData,
+      profileImgUrl: userData.profileImgUrl || ""
+    };
+    setUser(userWithProfile);
     setIsAuthenticated(true);
-    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('user', JSON.stringify(userWithProfile));
   };
 
   const logout = async () => {
