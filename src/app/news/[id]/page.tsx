@@ -76,31 +76,58 @@ export default function NewsDetailPage() {
 
   return (
       <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-8 px-4">
-        <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-4 mb-10">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] mb-2 text-center">뉴스 상세</h1>
+        <div className="w-full max-w-4xl bg-white/95 rounded-3xl shadow-xl p-10 flex flex-col gap-6 mb-10 border border-white/50 backdrop-blur-sm">
+          <div className="text-center mb-4">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] mb-2">뉴스 상세</h1>
+            <div className="w-24 h-1 bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] mx-auto rounded-full"></div>
+          </div>
           {news.imageUrl && (
-            <div className="w-full h-60 relative mb-4 rounded-xl overflow-hidden">
+            <div className="w-full h-80 relative mb-6 rounded-2xl overflow-hidden shadow-lg border border-gray-100">
               <Image
                 src={news.imageUrl}
                 alt="뉴스 이미지"
                 fill
-                className="object-cover w-full h-60 rounded-xl"
+                className="object-contain w-full h-80 rounded-2xl bg-gray-50"
                 priority
               />
             </div>
           )}
-          <div className="text-2xl font-bold mb-2 text-center">{news.title}</div>
-          <div className="text-gray-500 text-sm mb-1 flex flex-wrap gap-2 items-center">
-            <span>{news.originCreatedDate || news.createdDate}</span>
-            {news.author && <span>· {news.author}</span>}
-            {news.source && <span className="px-2 py-0.5 bg-[#e6f1fb] rounded text-[#2b6cb0] font-semibold ml-2">{news.source}</span>}
+          
+          <div className="text-3xl font-bold mb-4 text-center leading-tight text-[#1e3a8a]">{news.title}</div>
+          
+          <div className="flex flex-wrap gap-3 items-center justify-center mb-6 text-sm text-[#64748b]">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>{news.originCreatedDate || news.createdDate}</span>
+            </div>
+            {news.author && (
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>{news.author}</span>
+              </div>
+            )}
+            {news.source && (
+              <span className="px-3 py-1 bg-gradient-to-r from-[#e6f1fb] to-[#f0f7ff] rounded-full text-[#2b6cb0] font-semibold border border-[#7f9cf5]/20">
+                {news.source}
+              </span>
+            )}
           </div>
-          <div className="text-base text-gray-800 leading-relaxed whitespace-pre-line">{news.content}</div>
+          
+          <div className="text-lg text-[#374151] leading-relaxed whitespace-pre-line bg-[#f8fafc] p-6 rounded-2xl border border-[#e0e7ef]/50">
+            {news.content}
+          </div>
         </div>
         <button
             onClick={handleQuiz}
-            className="w-full max-w-4xl py-3 rounded-full bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold text-lg shadow hover:opacity-90 transition"
+            className="w-full max-w-4xl py-4 rounded-2xl bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold text-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-3"
         >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
           상세 퀴즈 풀러가기
         </button>
       </div>
