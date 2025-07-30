@@ -4,9 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Home() {
   const searchParams = useSearchParams();
+  const { checkAuth } = useAuth();
   
   useEffect(() => {
     const loginSuccess = searchParams.get('loginSuccess');
@@ -14,8 +16,10 @@ export default function Home() {
     
     if (loginSuccess === 'true' && message) {
       alert(message); // 카카오 로그인 성공 메시지 팝업
+      // 소셜로그인 성공 후 최신 사용자 정보 가져오기
+      checkAuth();
     }
-  }, [searchParams]);
+  }, [searchParams, checkAuth]);
 
   return (
     <div className="font-sans min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] flex flex-col items-center relative">
