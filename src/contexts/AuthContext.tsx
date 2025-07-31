@@ -91,8 +91,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(data.data);
           setIsAuthenticated(true);
         }
+      } else if (response.status === 401) {
+        // 인증되지 않은 경우 (정상적인 상황)
+        console.log('사용자가 로그인되지 않았습니다.');
+        setUser(null);
+        setIsAuthenticated(false);
+        localStorage.removeItem('user');
       } else {
-        // 인증되지 않은 경우
+        // 기타 서버 오류
+        console.error('서버 오류:', response.status, response.statusText);
         setUser(null);
         setIsAuthenticated(false);
         localStorage.removeItem('user');
@@ -106,7 +113,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    checkAuth();
+    // 페이지 로드 시 인증 확인을 지연시켜 서버 부하 감소
+    const timer = setTimeout(() => {
+      checkAuth();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const value = {

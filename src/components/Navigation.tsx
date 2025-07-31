@@ -43,15 +43,23 @@ export default function Navigation() {
               </span>
               <Link href="/mypage" className="text-[#2b6cb0] hover:text-[#5ac7b2] transition">
 <<<<<<< HEAD
+<<<<<<< HEAD
                 {user?.profileImgUrl ? (
+=======
+                {user?.profileImgUrl && user.profileImgUrl.trim() !== '' ? (
+>>>>>>> 8e45b00 (feat: 프사)
                   <div className="w-8 h-8 rounded-full overflow-hidden">
-                    <Image
+                    <img
                       src={user.profileImgUrl}
                       alt="프로필 이미지"
-                      width={32}
-                      height={32}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('프로필 이미지 로드 실패:', user.profileImgUrl);
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
                     />
+                    <FaUserCircle size={32} className="hidden" />
                   </div>
                 ) : (
                   <FaUserCircle size={32} />
