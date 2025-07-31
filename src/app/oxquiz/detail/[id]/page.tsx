@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useAuth } from "@/contexts/AuthContext";
 
 // 서버 응답 타입 정의
 interface ApiResponse<T> {
@@ -54,6 +55,7 @@ interface PageProps {
 
 export default function OxQuizDetailPage({ params }: PageProps) {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const { id } = params;
   const [quiz, setQuiz] = useState<FactQuizDtoWithNewsContent | FactQuizDtoWithUserAnswer | null>(null);
   const [isSolved, setIsSolved] = useState(false);
@@ -114,12 +116,21 @@ export default function OxQuizDetailPage({ params }: PageProps) {
   };
 
   useEffect(() => {
-    const quizId = id;
-    console.log('현재 퀴즈 ID:', quizId);
-    
-    // 서버에서 퀴즈 데이터 가져오기
-    fetchQuizDetail(quizId);
-  }, [id]);
+    // 인증 상태가 확인된 후에만 데이터 로드
+    if (isAuthenticated !== undefined) {
+      if (!isAuthenticated) {
+        setError('로그인이 필요합니다.');
+        setLoading(false);
+        return;
+      }
+      
+      const quizId = id;
+      console.log('현재 퀴즈 ID:', quizId);
+      
+      // 서버에서 퀴즈 데이터 가져오기
+      fetchQuizDetail(quizId);
+    }
+  }, [id, isAuthenticated]);
 
   // 정답 제출 함수
   const submitAnswer = async (selectedAnswer: 'real' | 'fake') => {
@@ -186,17 +197,35 @@ export default function OxQuizDetailPage({ params }: PageProps) {
   }
 
   if (error) {
+    // 로그인 관련 에러인지 확인
+    const isLoginError = error.includes('로그인이 필요합니다') || error.includes('인증');
+    
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+      <div className="min-h-screen flex items-start justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-70">
         <div className="text-center">
-          <div className="text-xl font-semibold text-red-600 mb-2">오류가 발생했습니다</div>
-          <div className="text-gray-500 mb-4">{error}</div>
-          <button
-            onClick={() => router.push('/oxquiz')}
-            className="px-4 py-2 bg-[#7f9cf5] text-white rounded-lg hover:bg-[#5a7bd8] transition-colors"
-          >
-            OX퀴즈 목록으로 돌아가기
-          </button>
+          {isLoginError ? (
+            <>
+              <div className="text-2xl font-bold text-[#2b6cb0] mb-4">OX퀴즈를 풀려면 로그인이 필요해요!</div>
+              <div className="text-gray-600 mb-6 text-lg">로그인하고 퀴즈에 도전해보세요.</div>
+              <button
+                onClick={() => router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)}
+                className="px-6 py-3 bg-[#7f9cf5] text-white rounded-lg hover:bg-[#5a7bd8] transition-colors font-semibold text-lg"
+              >
+                로그인하기
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="text-xl font-semibold text-red-600 mb-2">오류가 발생했습니다</div>
+              <div className="text-gray-500 mb-4">{error}</div>
+              <button
+                onClick={() => router.push('/oxquiz')}
+                className="px-4 py-2 bg-[#7f9cf5] text-white rounded-lg hover:bg-[#5a7bd8] transition-colors"
+              >
+                OX퀴즈 목록으로 돌아가기
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -240,23 +269,24 @@ export default function OxQuizDetailPage({ params }: PageProps) {
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] text-center">OX 퀴즈</h2>
             <div className="bg-gradient-to-r from-[#e6f1fb] to-[#f7fafd] rounded-xl p-6 border border-[#e0e7ef] shadow-sm mt-8">
               <div className="text-xl sm:text-2xl font-bold text-[#222] text-center">{solvedQuiz.realNewsTitle}</div>
+              <div className="text-lg font-semibold text-[#10b981] text-center mt-3">{solvedQuiz.question}</div>
             </div>
-            <div className="flex flex-col lg:flex-row gap-6 w-full items-stretch justify-center">
+            <div className="flex flex-col gap-6 w-full items-stretch justify-center">
               <div
-                className={`flex-1 rounded-xl border-2 p-8 transition-all shadow-sm min-h-[300px] flex flex-col
+                className={`w-full rounded-xl border-2 p-8 transition-all shadow-sm min-h-[200px] flex flex-col
                   ${solvedQuiz.selectedNewsType === 'REAL' ? (solvedQuiz.isCorrect ? 'ring-2 ring-green-400 border-[#7f9cf5] bg-[#e6f0ff]' : 'ring-2 ring-red-400 border-[#e0e7ef] bg-[#f7fafd]') : 'border-[#e0e7ef] bg-[#f7fafd]'}
                 `}
               >
                 <div className="font-semibold text-[#2b6cb0] mb-4 text-lg">뉴스 A</div>
-                <div className="text-base text-gray-800 whitespace-pre-line flex-1 leading-relaxed">{solvedQuiz.realNewsContent}</div>
+                <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium">{solvedQuiz.realNewsContent}</div>
               </div>
               <div
-                className={`flex-1 rounded-xl border-2 p-8 transition-all shadow-sm min-h-[300px] flex flex-col
+                className={`w-full rounded-xl border-2 p-8 transition-all shadow-sm min-h-[200px] flex flex-col
                   ${solvedQuiz.selectedNewsType === 'FAKE' ? (!solvedQuiz.isCorrect ? 'ring-2 ring-green-400 border-[#7f9cf5] bg-[#e6f0ff]' : 'ring-2 ring-red-400 border-[#e0e7ef] bg-[#f7fafd]') : 'border-[#e0e7ef] bg-[#f7fafd]'}
                 `}
               >
                 <div className="font-semibold text-[#2b6cb0] mb-4 text-lg">뉴스 B</div>
-                <div className="text-base text-gray-800 whitespace-pre-line flex-1 leading-relaxed">{solvedQuiz.fakeNewsContent}</div>
+                <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium">{solvedQuiz.fakeNewsContent}</div>
               </div>
             </div>
             <div className={`text-center text-lg font-semibold mt-2 ${solvedQuiz.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
@@ -304,29 +334,30 @@ export default function OxQuizDetailPage({ params }: PageProps) {
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] text-center">OX 퀴즈</h2>
           <div className="bg-gradient-to-r from-[#e6f1fb] to-[#f7fafd] rounded-xl p-6 border border-[#e0e7ef] shadow-sm mt-8">
             <div className="text-xl sm:text-2xl font-bold text-[#222] text-center">{unsolvedQuiz.realNewsTitle}</div>
+            <div className="text-lg font-semibold text-[#10b981] text-center mt-3">{unsolvedQuiz.question}</div>
           </div>
-          <div className="flex flex-col lg:flex-row gap-6 w-full items-stretch justify-center">
+          <div className="flex flex-col gap-6 w-full items-stretch justify-center">
             <div
               onClick={() => !submitted && setSelected('real')}
-              className={`flex-1 rounded-xl border-2 p-8 cursor-pointer transition-all shadow-sm min-h-[300px] flex flex-col
+              className={`w-full rounded-xl border-2 p-8 cursor-pointer transition-all shadow-sm min-h-[200px] flex flex-col
                 ${selected === 'real' ? 'border-[#7f9cf5] bg-[#e6f0ff]' : 'border-[#e0e7ef] bg-[#f7fafd]'}
                 ${submitted && answerResult?.selectedNewsType === 'REAL' && answerResult.isCorrect ? 'ring-2 ring-green-400' : ''}
                 ${submitted && answerResult?.selectedNewsType === 'REAL' && !answerResult.isCorrect ? 'ring-2 ring-red-400' : ''}
               `}
             >
               <div className="font-semibold text-[#2b6cb0] mb-4 text-lg">뉴스 A</div>
-              <div className="text-base text-gray-800 whitespace-pre-line flex-1 leading-relaxed">{unsolvedQuiz.realNewsContent}</div>
+              <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium">{unsolvedQuiz.realNewsContent}</div>
             </div>
             <div
               onClick={() => !submitted && setSelected('fake')}
-              className={`flex-1 rounded-xl border-2 p-8 cursor-pointer transition-all shadow-sm min-h-[300px] flex flex-col
+              className={`w-full rounded-xl border-2 p-8 cursor-pointer transition-all shadow-sm min-h-[200px] flex flex-col
                 ${selected === 'fake' ? 'border-[#7f9cf5] bg-[#e6f0ff]' : 'border-[#e0e7ef] bg-[#f7fafd]'}
                 ${submitted && answerResult?.selectedNewsType === 'FAKE' && answerResult.correctNewsType === 'FAKE' ? 'ring-2 ring-green-400' : ''}
                 ${submitted && answerResult?.selectedNewsType === 'FAKE' && answerResult.correctNewsType === 'REAL' ? 'ring-2 ring-red-400' : ''}
               `}
             >
               <div className="font-semibold text-[#2b6cb0] mb-4 text-lg">뉴스 B</div>
-              <div className="text-base text-gray-800 whitespace-pre-line flex-1 leading-relaxed">{unsolvedQuiz.fakeNewsContent}</div>
+              <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium">{unsolvedQuiz.fakeNewsContent}</div>
             </div>
           </div>
           <button

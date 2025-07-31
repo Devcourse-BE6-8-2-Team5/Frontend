@@ -92,7 +92,25 @@ export default function OxQuizMainPage() {
       
     } catch (err) {
       console.error('퀴즈 데이터 가져오기 오류:', err);
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      
+      // 더 명확한 오류 메시지 제공
+      let errorMessage = '알 수 없는 오류가 발생했습니다.';
+      
+      if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+        errorMessage = '서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.';
+      } else if (err instanceof Error) {
+        if (err.message.includes('500')) {
+          errorMessage = '서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        } else if (err.message.includes('404')) {
+          errorMessage = '요청한 데이터를 찾을 수 없습니다.';
+        } else if (err.message.includes('401')) {
+          errorMessage = '로그인이 필요합니다.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

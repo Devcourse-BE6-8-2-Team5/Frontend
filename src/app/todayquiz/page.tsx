@@ -68,12 +68,20 @@ export default function TodayQuizPage() {
         credentials: 'include',
       });
 
+      if (response.status === 401) {
+        alert('로그인이 필요합니다.');
+        router.push(`/login?redirect=${encodeURIComponent('/todayquiz')}`);
+        return null;
+      }
+
       if (!response.ok) {
         throw new Error('오늘의 뉴스를 가져오는데 실패했습니다.');
       }
 
       const result = await response.json();
+      console.log('뉴스 API 응답:', result);
       if (result.code === 200) {
+        console.log('뉴스 데이터:', result.data);
         setTodayNews(result.data);
         return result.data.id;
       } else {
@@ -103,7 +111,10 @@ export default function TodayQuizPage() {
       }
 
       const result = await response.json();
+      console.log('퀴즈 API 응답:', result);
       if (result.code === 200) {
+        console.log('퀴즈 데이터:', result.data);
+        // 서버에서 이미 풀었냐 안 풀었냐에 따라 다른 구조로 보내줌
         setQuizData(result.data);
       } else {
         throw new Error(result.message || '오늘의 퀴즈를 가져오는데 실패했습니다.');
@@ -116,11 +127,11 @@ export default function TodayQuizPage() {
 
   // 모든 퀴즈 제출
   const submitAllQuizzes = async () => {
-    if (!quizData || quizData.isCompleted) {
+    if (!quizData || quizData.isCompleted || !('quizzes' in quizData)) {
       return;
     }
 
-    if (Object.keys(answers).length !== quizData.quizzes.length) {
+    if (Object.keys(answers).length !== (quizData?.quizzes?.length || 0)) {
       alert('모든 문제를 풀어주세요.');
       return;
     }
@@ -135,7 +146,7 @@ export default function TodayQuizPage() {
       const results: { [quizId: number]: DailyQuizAnswerDto } = {};
       
       // 각 퀴즈를 순차적으로 제출
-      for (const quiz of quizData.quizzes) {
+      for (const quiz of quizData?.quizzes || []) {
         const selectedOption = answers[quiz.id];
         if (!selectedOption) continue;
 
@@ -149,12 +160,20 @@ export default function TodayQuizPage() {
         });
 
         if (!response.ok) {
+          // 에러 응답 내용 확인
+          const errorText = await response.text();
+          console.error(`퀴즈 ${quiz.id} 제출 실패:`, response.status, errorText);
+          
           if (response.status === 400) {
-            // 400 에러는 이미 제출된 퀴즈일 가능성이 높음
-            console.warn(`퀴즈 ${quiz.id}는 이미 제출되었거나 유효하지 않습니다.`);
-            continue;
+            // 400 에러는 이미 제출된 퀴즈
+            console.warn(`퀴즈 ${quiz.id}는 이미 제출되었습니다.`);
+            // 이미 푼 퀴즈라면 퀴즈 상태를 다시 조회하여 결과 화면 표시
+            if (todayNews?.id) {
+              await fetchDailyQuizzes(todayNews.id);
+            }
+            return;
           }
-          throw new Error(`퀴즈 ${quiz.id} 제출에 실패했습니다.`);
+          throw new Error(`퀴즈 ${quiz.id} 제출에 실패했습니다. (${response.status})`);
         }
 
         const result = await response.json();
@@ -165,8 +184,10 @@ export default function TodayQuizPage() {
         }
       }
 
-      // 제출 완료 후 페이지 새로고침하여 결과 화면 표시
-      window.location.reload();
+      // 제출 완료 후 퀴즈 상태를 다시 조회하여 결과 화면 표시
+      if (todayNews?.id) {
+        await fetchDailyQuizzes(todayNews.id);
+      }
     } catch (err) {
       console.error('퀴즈 제출 오류:', err);
       alert(err instanceof Error ? err.message : '퀴즈 제출에 실패했습니다.');
@@ -180,13 +201,6 @@ export default function TodayQuizPage() {
     const loadData = async () => {
       setLoading(true);
       setError(null);
-
-      // 인증 확인
-      if (!isAuthenticated) {
-        alert('로그인이 필요합니다.');
-        router.push('/login');
-        return;
-      }
 
       try {
         // 1. 오늘의 뉴스 조회
@@ -203,7 +217,15 @@ export default function TodayQuizPage() {
       }
     };
 
-    loadData();
+    // 인증 상태가 확인된 후에만 데이터 로드
+    if (isAuthenticated !== undefined) {
+      if (!isAuthenticated) {
+        alert('로그인이 필요합니다.');
+        router.push('/login');
+        return;
+      }
+      loadData();
+    }
   }, [isAuthenticated, router]);
 
   // 퀴즈 완료 여부 확인 (제출 버튼을 통해 완료되므로 이 useEffect는 제거)
@@ -271,7 +293,7 @@ export default function TodayQuizPage() {
   );
 
   // 퀴즈 완료 후 보여줄 UI (서버에서 완료된 데이터를 받아옴)
-  if (quizData && quizData.isCompleted) {
+  if (quizData && 'isCompleted' in quizData && quizData.isCompleted) {
     return (
       <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-8 px-4">
         <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-8 mb-10">
@@ -350,17 +372,35 @@ export default function TodayQuizPage() {
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-[#f7fafd] rounded-xl p-4 flex flex-col items-center shadow">
               <div className="text-xs text-gray-500 mb-1">총 정답</div>
-              <div className="text-xl font-bold text-[#2b6cb0]">{quizData.quizResults.length}개 중 {quizData.totalCorrect}개</div>
+              <div className="text-xl font-bold text-[#2b6cb0]">{quizData?.quizResults?.length || 0}개 중 {quizData?.totalCorrect || 0}개</div>
             </div>
             <div className="bg-[#e6f1fb] rounded-xl p-4 flex flex-col items-center shadow">
               <div className="text-xs text-gray-500 mb-1">오늘의 퀴즈 경험치</div>
-              <div className="text-xl font-bold text-[#43e6b5]">+{quizData.totalExp}점</div>
+              <div className="text-xl font-bold text-[#43e6b5]">+{quizData?.totalExp || 0}점</div>
             </div>
             <div className="bg-[#f7fafd] rounded-xl p-4 flex flex-col items-center shadow">
               <div className="text-xs text-gray-500 mb-1">퀴즈 완료</div>
               <div className="text-xl font-bold text-[#7f9cf5]">성공!</div>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // quizData가 null이거나 올바른 형태가 아닌 경우 처리
+  if (!quizData || !('quizzes' in quizData) || !('isCompleted' in quizData)) {
+    console.log('quizData 상태:', quizData);
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+        <div className="text-center">
+          <div className="text-gray-600 mb-4">퀴즈 데이터를 불러올 수 없습니다.</div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-[#2b6cb0] text-white rounded-lg hover:bg-[#1e40af] transition-colors"
+          >
+            다시 시도
+          </button>
         </div>
       </div>
     );
@@ -390,7 +430,7 @@ export default function TodayQuizPage() {
         <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] mb-3 text-center">오늘의 퀴즈</h1>
         
         <div className="w-full flex flex-col items-center">
-          {quizData?.quizzes.map((quiz, idx) => {
+          {quizData?.quizzes?.map((quiz, idx) => {
             const isAnswered = answers[quiz.id];
             
             return (
