@@ -435,63 +435,63 @@ export default function TodayQuizPage() {
             
             return (
               <div key={quiz.id} className="mb-8 w-full">
-                <div className="font-bold text-lg mb-4 flex items-center gap-2">
-                  <span className="bg-[#2b6cb0] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
-                    {idx + 1}
-                  </span>
-                  {quiz.question}
-                </div>
-                <div className="grid grid-cols-1 gap-3">
+              <div className="font-bold text-lg mb-4 flex items-center gap-2">
+                <span className="bg-[#2b6cb0] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                  {idx + 1}
+                </span>
+                {quiz.question}
+              </div>
+              <div className="grid grid-cols-1 gap-3">
                   {(['OPTION1', 'OPTION2', 'OPTION3'] as const).map((option) => {
                     const isSelected = answers[quiz.id] === option;
                     const optionText = getOptionText(quiz, option);
                     const optionLabel = getOptionLabel(option);
-                    
-                    return (
-                      <button
+                  
+                  return (
+                    <button
                         key={option}
                         onClick={() => {
                           setAnswers(prev => ({ ...prev, [quiz.id]: option }));
                         }}
                         disabled={false}
                         className={`p-4 rounded-lg border-2 transition-all text-left hover:shadow-md hover:border-gray-300 ${
-                          isSelected 
-                            ? "border-[#2b6cb0] bg-[#e6f1fb]" 
+                        isSelected 
+                          ? "border-[#2b6cb0] bg-[#e6f1fb]" 
                             : "border-gray-200 bg-white"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                            isSelected 
-                              ? "bg-[#2b6cb0] text-white" 
-                              : "bg-gray-200 text-gray-600"
-                          }`}>
-                            {optionLabel}
-                          </div>
-                          <span className={`font-medium ${
-                            isSelected 
-                              ? "text-[#2b6cb0]" 
-                              : "text-gray-700"
-                          }`}>
-                            {optionText}
-                          </span>
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                          isSelected 
+                            ? "bg-[#2b6cb0] text-white" 
+                            : "bg-gray-200 text-gray-600"
+                        }`}>
+                          {optionLabel}
                         </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                        <span className={`font-medium ${
+                          isSelected 
+                            ? "text-[#2b6cb0]" 
+                            : "text-gray-700"
+                        }`}>
+                          {optionText}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
+            </div>
             );
           })}
         </div>
         
         {/* 제출 버튼 */}
-        <button
-          className={`w-full py-4 rounded-xl font-bold text-lg shadow transition-all ${
+          <button
+            className={`w-full py-4 rounded-xl font-bold text-lg shadow transition-all ${
             Object.keys(answers).length === (quizData?.quizzes.length || 0) && !submitting
-              ? "bg-[#2b6cb0] text-white hover:bg-[#1e40af]"
-              : "bg-gray-300 text-gray-500 cursor-not-allowed"
-          }`}
+                ? "bg-[#2b6cb0] text-white hover:bg-[#1e40af]"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
           onClick={submitAllQuizzes}
           disabled={Object.keys(answers).length !== (quizData?.quizzes.length || 0) || submitting}
         >
@@ -501,7 +501,7 @@ export default function TodayQuizPage() {
               ? "퀴즈 제출하기" 
               : "모든 문제를 풀어주세요"
           }
-        </button>
+          </button>
       </div>
     </div>
   );
