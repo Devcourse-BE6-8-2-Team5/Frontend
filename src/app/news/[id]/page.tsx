@@ -23,6 +23,8 @@ export default function NewsDetailPage() {
   const [news, setNews] = useState<NewsDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [alreadySolved, setAlreadySolved] = useState(false);
+  const [checkingSolved, setCheckingSolved] = useState(true);
 
   useEffect(() => {
     if (!newsId) return;
@@ -46,31 +48,84 @@ export default function NewsDetailPage() {
     fetchNews();
   }, [newsId]);
 
+  // 퀴즈 풀이 여부 확인
+  useEffect(() => {
+    if (!newsId) return;
+    const checkAlreadySolved = async () => {
+      setCheckingSolved(true);
+      try {
+        // 먼저 해당 뉴스의 퀴즈가 있는지 확인
+        const quizRes = await fetch(`/api/quiz/detail/news/${newsId}`);
+        if (!quizRes.ok) {
+          setCheckingSolved(false);
+          return;
+        }
+
+        const quizData = await quizRes.json();
+        if (quizData.code !== 200 || !quizData.data || quizData.data.length === 0) {
+          setCheckingSolved(false);
+          return;
+        }
+
+        // 퀴즈가 있으면 사용자의 퀴즈 히스토리를 확인
+        const quizIds = quizData.data.map((quiz: any) => quiz.id);
+
+        // 각 퀴즈에 대해 사용자가 풀었는지 확인
+        let solvedCount = 0;
+        for (const quizId of quizIds) {
+          try {
+            const historyRes = await fetch(`/api/quiz/detail/${quizId}`, {
+              credentials: 'include',
+            });
+            if (historyRes.ok) {
+              const historyData = await historyRes.json();
+              if (historyData.code === 200 && historyData.data && historyData.data.answer !== null) {
+                solvedCount++;
+              }
+            }
+          } catch (error) {
+            console.error('퀴즈 히스토리 확인 오류:', error);
+          }
+        }
+
+        // 모든 퀴즈를 풀었으면 완료로 간주
+        if (solvedCount === quizIds.length && quizIds.length > 0) {
+          setAlreadySolved(true);
+        }
+      } catch (error) {
+        console.error('퀴즈 풀이 여부 확인 오류:', error);
+      } finally {
+        setCheckingSolved(false);
+      }
+    };
+    checkAlreadySolved();
+  }, [newsId]);
+
   const handleQuiz = () => {
     router.push(`/news/${newsId}/quiz`);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
-        <div className="text-lg text-gray-500">로딩 중...</div>
-      </div>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+          <div className="text-lg text-gray-500">로딩 중...</div>
+        </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
-        <div className="text-red-500 text-lg">{error}</div>
-      </div>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+          <div className="text-red-500 text-lg">{error}</div>
+        </div>
     );
   }
 
   if (!news) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
-        <div className="text-gray-500 text-lg">뉴스를 찾을 수 없습니다.</div>
-      </div>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+          <div className="text-gray-500 text-lg">뉴스를 찾을 수 없습니다.</div>
+        </div>
     );
   }
 
@@ -82,19 +137,19 @@ export default function NewsDetailPage() {
             <div className="w-24 h-1 bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] mx-auto rounded-full"></div>
           </div>
           {news.imageUrl && (
-            <div className="w-full h-80 relative mb-6 rounded-2xl overflow-hidden shadow-lg border border-gray-100">
-              <Image
-                src={news.imageUrl}
-                alt="뉴스 이미지"
-                fill
-                className="object-contain w-full h-80 rounded-2xl bg-gray-50"
-                priority
-              />
-            </div>
+              <div className="w-full h-80 relative mb-6 rounded-2xl overflow-hidden shadow-lg border border-gray-100">
+                <Image
+                    src={news.imageUrl}
+                    alt="뉴스 이미지"
+                    fill
+                    className="object-contain w-full h-80 rounded-2xl bg-gray-50"
+                    priority
+                />
+              </div>
           )}
-          
+
           <div className="text-3xl font-bold mb-4 text-center leading-tight text-[#1e3a8a]">{news.title}</div>
-          
+
           <div className="flex flex-wrap gap-3 items-center justify-center mb-6 text-sm text-[#64748b]">
             <div className="flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -103,33 +158,46 @@ export default function NewsDetailPage() {
               <span>{news.originCreatedDate || news.createdDate}</span>
             </div>
             {news.author && (
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                <span>{news.author}</span>
-              </div>
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span>{news.author}</span>
+                </div>
             )}
             {news.source && (
-              <span className="px-3 py-1 bg-gradient-to-r from-[#e6f1fb] to-[#f0f7ff] rounded-full text-[#2b6cb0] font-semibold border border-[#7f9cf5]/20">
+                <span className="px-3 py-1 bg-gradient-to-r from-[#e6f1fb] to-[#f0f7ff] rounded-full text-[#2b6cb0] font-semibold border border-[#7f9cf5]/20">
                 {news.source}
               </span>
             )}
           </div>
-          
+
           <div className="text-lg text-[#374151] leading-relaxed whitespace-pre-line bg-[#f8fafc] p-6 rounded-2xl border border-[#e0e7ef]/50">
             {news.content}
           </div>
         </div>
-        <button
-            onClick={handleQuiz}
-            className="w-full max-w-4xl py-4 rounded-2xl bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold text-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-3"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          상세 퀴즈 풀러가기
-        </button>
+
+        {/* 이미 퀴즈를 풀었으면 완료 메시지 표시, 아니면 퀴즈 버튼 표시 */}
+        {!checkingSolved && (
+            alreadySolved ? (
+                <div className="w-full max-w-4xl py-4 rounded-2xl bg-gradient-to-r from-green-400 to-green-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  상세 퀴즈 완료
+                </div>
+            ) : (
+                <button
+                    onClick={handleQuiz}
+                    className="w-full max-w-4xl py-4 rounded-2xl bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold text-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-3"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  상세 퀴즈 풀러가기
+                </button>
+            )
+        )}
       </div>
   );
 } 
