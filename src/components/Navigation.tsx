@@ -1,30 +1,24 @@
 "use client";
 
 import Link from "next/link";
-<<<<<<< HEAD
 import Image from "next/image";
 import { FaUserCircle } from "react-icons/fa";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
-=======
-import { FaUserCircle } from "react-icons/fa";
-import { useAuth } from "@/contexts/AuthContext";
->>>>>>> b0ee16a (work)
+import { useEffect, useState } from "react";
 
 export default function Navigation() {
   const { isAuthenticated, user, logout } = useAuth();
+  const [imageError, setImageError] = useState(false);
 
-<<<<<<< HEAD
   // 디버깅용: 사용자 정보 출력
   useEffect(() => {
     if (user) {
-      console.log("Navigation - User info:", user);
-      console.log("Navigation - profileImgUrl:", user.profileImgUrl);
+      console.log("Navigation - 사용자 정보:", user);
+      console.log("Navigation - 프로필 사진 Url:", user.profileImgUrl);
+      setImageError(false); // 새로운 사용자 정보가 오면 에러 상태 초기화
     }
   }, [user]);
 
-=======
->>>>>>> b0ee16a (work)
   const handleLogout = async () => {
     await logout();
   };
@@ -41,33 +35,25 @@ export default function Navigation() {
               <span className="text-[#2b6cb0] font-semibold">
                 {user?.name}님
               </span>
-              <Link href="/mypage" className="text-[#2b6cb0] hover:text-[#5ac7b2] transition">
-<<<<<<< HEAD
-<<<<<<< HEAD
-                {user?.profileImgUrl ? (
-=======
-                {user?.profileImgUrl && user.profileImgUrl.trim() !== '' ? (
->>>>>>> 8e45b00 (feat: 프사)
-                  <div className="w-8 h-8 rounded-full overflow-hidden">
-                    <img
-                      src={user.profileImgUrl}
-                      alt="프로필 이미지"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        console.error('프로필 이미지 로드 실패:', user.profileImgUrl);
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                      }}
-                    />
-                    <FaUserCircle size={32} className="hidden" />
-                  </div>
-                ) : (
-                  <FaUserCircle size={32} />
-                )}
-=======
-                <FaUserCircle size={32} />
->>>>>>> b0ee16a (work)
-              </Link>
+                             <Link href="/mypage" className="text-[#2b6cb0] hover:text-[#5ac7b2] transition">
+                 {user?.profileImgUrl && user.profileImgUrl.trim() !== '' && !imageError ? (
+                   <div className="w-8 h-8 rounded-full overflow-hidden">
+                     <Image
+                       src={user.profileImgUrl}
+                       alt="프로필 이미지"
+                       width={32}
+                       height={32}
+                       className="w-full h-full object-cover"
+                       onError={() => {
+                         console.log('프로필 이미지 로딩 실패:', user.profileImgUrl);
+                         setImageError(true);
+                       }}
+                     />
+                   </div>
+                 ) : (
+                   <FaUserCircle size={32} />
+                 )}
+               </Link>
             </div>
             <button 
               onClick={handleLogout}

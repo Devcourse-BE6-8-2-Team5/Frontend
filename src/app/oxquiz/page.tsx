@@ -51,7 +51,6 @@ export default function OxQuizMainPage() {
   const [quizzes, setQuizzes] = useState<FactQuiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userQuizStatus, setUserQuizStatus] = useState<Record<number, { solved: boolean; isCorrect?: boolean }>>({});
 
   // 퀴즈 데이터 가져오기
   const fetchQuizzes = async (category?: NewsCategory) => {
@@ -116,21 +115,6 @@ export default function OxQuizMainPage() {
     }
   };
 
-  // 로컬스토리지에서 사용자 퀴즈 상태 불러오기
-  useEffect(() => {
-    const savedStatus = localStorage.getItem('userOxQuizStatus');
-    console.log('로드된 퀴즈 상태:', savedStatus);
-    if (savedStatus) {
-      try {
-        const parsedStatus = JSON.parse(savedStatus);
-        console.log('파싱된 퀴즈 상태:', parsedStatus);
-        setUserQuizStatus(parsedStatus);
-      } catch (error) {
-        console.error('퀴즈 상태 로드 오류:', error);
-      }
-    }
-  }, []);
-
   // 페이지 로드 시 전체 퀴즈 데이터 가져오기
   useEffect(() => {
     fetchQuizzes();
@@ -145,29 +129,6 @@ export default function OxQuizMainPage() {
       fetchQuizzes(category);
     }
   }, [selectedCategory]);
-
-  // 퀴즈 제출 후 상태 업데이트 (실제로는 API 응답 후 호출)
-  const updateQuizStatus = (quizId: number, isCorrect: boolean, userAnswer: 'real' | 'fake') => {
-    console.log('퀴즈 상태 업데이트 호출:', { quizId, isCorrect, userAnswer });
-    const newStatus = {
-      ...userQuizStatus,
-      [quizId]: { solved: true, isCorrect, userAnswer }
-    };
-    console.log('새로운 퀴즈 상태:', newStatus);
-    setUserQuizStatus(newStatus);
-    
-    // 로컬스토리지에 저장
-    localStorage.setItem('userOxQuizStatus', JSON.stringify(newStatus));
-    console.log('로컬스토리지에 저장됨:', localStorage.getItem('userOxQuizStatus'));
-  };
-
-  // 전역 함수로 등록 (다른 컴포넌트에서 호출 가능)
-  useEffect(() => {
-    (window as any).updateOxQuizStatus = updateQuizStatus;
-    return () => {
-      delete (window as any).updateOxQuizStatus;
-    };
-  }, [userQuizStatus]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
@@ -236,93 +197,50 @@ export default function OxQuizMainPage() {
             )}
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {quizzes.map(quiz => {
-                const status = userQuizStatus[quiz.id];
-                const isSolved = status?.solved;
-                const isCorrect = status?.isCorrect;
-                
-                return (
-                  <Link 
-                    key={quiz.id}
-                    href={`/oxquiz/detail/${quiz.id}`}
-                    className={`group relative bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer transform hover:scale-[1.02] border-2
-                      ${isSolved 
-                        ? isCorrect 
-                          ? 'border-green-200 bg-gradient-to-br from-green-50 to-emerald-50' 
-                          : 'border-red-200 bg-gradient-to-br from-red-50 to-pink-50'
-                        : 'border-[#e0e7ef] hover:border-[#7f9cf5]'
-                      }
-                    `}
-                  >
-                    {/* 퀴즈 상태 배지 */}
-                    {isSolved && (
-                      <div className="absolute top-4 right-4 z-10">
-                        <div className={`px-3 py-1 rounded-full text-xs font-bold shadow-md
-                          ${isCorrect 
-                            ? 'bg-green-500 text-white' 
-                            : 'bg-red-500 text-white'
-                          }
-                        `}>
-                          {isCorrect ? '✅ 정답!' : '❌ 오답'}
-                        </div>
-                      </div>
-                    )}
+              {quizzes.map(quiz => (
+                <Link 
+                  key={quiz.id}
+                  href={`/oxquiz/detail/${quiz.id}`}
+                  className="group relative bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer transform hover:scale-[1.02] border-2 border-[#e0e7ef] hover:border-[#7f9cf5]"
+                >
+                  
+                  {/* 퀴즈 순서 */}
+                  <div className="absolute top-4 left-4 z-10">
+                    <span className="text-sm font-bold text-[#7f9cf5] bg-[#e6f1fb] px-2 py-1 rounded">
+                      퀴즈 {quizzes.indexOf(quiz) + 1}
+                    </span>
+                  </div>
+                  
+                  {/* 퀴즈 내용 */}
+                  <div className="p-6 pt-16 flex flex-col h-full">
                     
-                    {/* 퀴즈 순서 */}
-                    <div className="absolute top-4 left-4 z-10">
-                      <span className="text-sm font-bold text-[#7f9cf5] bg-[#e6f1fb] px-2 py-1 rounded">
-                        퀴즈 {quizzes.indexOf(quiz) + 1}
-                      </span>
-                    </div>
-                    
-                    {/* 퀴즈 내용 */}
-                    <div className="p-6 pt-16 flex flex-col h-full">
-                      
-                      {/* 기사 제목 - 중앙 정렬 */}
-                      <div className="text-center mb-6">
-                        <div className="inline-block">
-                          <h3 className="text-lg font-bold text-[#2b6cb0] group-hover:text-[#5a7bd8] transition-colors leading-tight px-6 py-3 bg-white border-2 border-[#7f9cf5] rounded-xl shadow-sm">
-                            {quiz.realNewsTitle}
-                          </h3>
-                        </div>
-                      </div>
-                      
-
-                      
-
-                      
-                      {/* 퀴즈 상태 */}
-                      <div className="flex items-center justify-between mt-auto pt-6">
-                        {isSolved ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">퀴즈 완료</span>
-                            <span className={`text-xs font-semibold px-2 py-1 rounded-full
-                              ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}
-                            `}>
-                              {isCorrect ? '정답입니다!' : '틀렸습니다.'}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-500">아직 풀지 않음</span>
-                        )}
-                        
-                        {/* 퀴즈 질문과 화살표 */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-gray-700">
-                            {quiz.question}
-                          </span>
-                          <span className="text-[#7f9cf5] text-3xl font-black group-hover:text-[#5a7bd8] transition-colors -mt-2">
-                            →
-                          </span>
-                        </div>
+                    {/* 기사 제목 - 중앙 정렬 */}
+                    <div className="text-center mb-6">
+                      <div className="inline-block">
+                        <h3 className="text-lg font-bold text-[#2b6cb0] group-hover:text-[#5a7bd8] transition-colors leading-tight px-6 py-3 bg-white border-2 border-[#7f9cf5] rounded-xl shadow-sm">
+                          {quiz.realNewsTitle}
+                        </h3>
                       </div>
                     </div>
                     
-                    {/* 호버 효과 */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-                  </Link>
-                );
-              })}
+                    {/* 퀴즈 질문과 화살표 */}
+                    <div className="flex items-center justify-between mt-auto pt-6">
+                      <span className="text-xs text-white">아직 풀지 않음</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-700">
+                          {quiz.question}
+                        </span>
+                        <span className="text-[#7f9cf5] text-3xl font-black group-hover:text-[#5a7bd8] transition-colors -mt-2">
+                          →
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 호버 효과 */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
+                </Link>
+              ))}
             </div>
           </div>
         )}

@@ -11,38 +11,29 @@ interface ApiResponse<T> {
   data: T;
 }
 
-// 안 푼 퀴즈용 DTO
-interface FactQuizDtoWithNewsContent {
-  id: number;
-  question: string;
-  realNewsTitle: string;
-  realNewsContent: string;
-  fakeNewsContent: string;
-  correctNewsType: 'REAL' | 'FAKE';
-  quizType: string;
-}
-
-// 이미 푼 퀴즈용 DTO (퀴즈 데이터 + 풀이 기록)
-interface FactQuizDtoWithUserAnswer {
-  id: number;
-  question: string;
-  realNewsTitle: string;
-  realNewsContent: string;
-  fakeNewsContent: string;
-  correctNewsType: 'REAL' | 'FAKE';
-  quizType: string;
-  // 사용자 풀이 기록
-  selectedNewsType: 'REAL' | 'FAKE';
-  isCorrect: boolean;
+// 서버에서 보내는 새로운 DTO 구조
+interface FactQuizWithHistoryDto {
+  factQuizDto: {
+    id: number;
+    question: string;
+    realNewsTitle: string;
+    realNewsContent: string;
+    fakeNewsContent: string;
+    correctNewsType: 'REAL' | 'FAKE';
+    quizType: string;
+  };
+  answer: string | null; // null이면 안 푼 퀴즈, 값이 있으면 푼 퀴즈
+  correct: boolean;
   gainExp: number;
 }
 
+// 정답 제출 응답 DTO (서버 응답에 맞게 수정)
 interface FactQuizAnswerDto {
   quizId: number;
   question: string;
   selectedNewsType: 'REAL' | 'FAKE';
   correctNewsType: 'REAL' | 'FAKE';
-  correct: boolean;  // 서버 응답에 맞춰 'isCorrect' → 'correct'로 변경
+  correct: boolean; // isCorrect에서 correct로 변경
   gainExp: number;
   quizType: string;
 }
@@ -57,8 +48,7 @@ export default function OxQuizDetailPage({ params }: PageProps) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const { id } = params;
-  const [quiz, setQuiz] = useState<FactQuizDtoWithNewsContent | FactQuizDtoWithUserAnswer | null>(null);
-  const [isSolved, setIsSolved] = useState(false);
+  const [quizData, setQuizData] = useState<FactQuizWithHistoryDto | null>(null);
   const [selected, setSelected] = useState<'real' | 'fake' | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [answerResult, setAnswerResult] = useState<FactQuizAnswerDto | null>(null);
@@ -93,17 +83,15 @@ export default function OxQuizDetailPage({ params }: PageProps) {
         }
       }
       
-      const result: ApiResponse<FactQuizDtoWithNewsContent | FactQuizDtoWithUserAnswer> = await response.json();
+      const result: ApiResponse<FactQuizWithHistoryDto> = await response.json();
       console.log('서버 응답 데이터:', result);
       
       if (result.code === 200) {
-        setQuiz(result.data);
+        setQuizData(result.data);
         
-        // 이미 푼 퀴즈인지 확인 (selectedNewsType 필드가 있으면 이미 푼 퀴즈)
-        const hasUserAnswer = 'selectedNewsType' in result.data;
-        setIsSolved(hasUserAnswer);
-        
-        console.log('퀴즈 상태:', hasUserAnswer ? '이미 푼 퀴즈' : '안 푼 퀴즈');
+        // answer이 null이면 안 푼 퀴즈, 값이 있으면 푼 퀴즈
+        const isSolved = result.data.answer !== null;
+        console.log('퀴즈 상태:', isSolved ? '이미 푼 퀴즈' : '안 푼 퀴즈');
       } else {
         throw new Error(result.message || '퀴즈 데이터를 가져오는데 실패했습니다.');
       }
@@ -134,12 +122,12 @@ export default function OxQuizDetailPage({ params }: PageProps) {
 
   // 정답 제출 함수
   const submitAnswer = async (selectedAnswer: 'real' | 'fake') => {
-    if (!quiz) return;
+    if (!quizData) return;
     
     try {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
       const selectedNewsType = selectedAnswer === 'real' ? 'REAL' : 'FAKE';
-      const url = `${API_BASE_URL}/api/quiz/fact/submit/${quiz.id}?selectedNewsType=${selectedNewsType}`;
+      const url = `${API_BASE_URL}/api/quiz/fact/submit/${quizData.factQuizDto.id}?selectedNewsType=${selectedNewsType}`;
       
       console.log('정답 제출 API 요청 URL:', url);
       
@@ -181,8 +169,8 @@ export default function OxQuizDetailPage({ params }: PageProps) {
   };
 
   // 퀴즈 질문에 따라 결과 메시지를 생성하는 함수
-  const getResultMessage = (isCorrect: boolean, correctNewsType: 'REAL' | 'FAKE', question: string) => {
-    if (isCorrect) {
+  const getResultMessage = (correct: boolean, correctNewsType: 'REAL' | 'FAKE', question: string) => {
+    if (correct) {
       return `${correctNewsType === 'REAL' ? '진짜 뉴스(A)' : '가짜 뉴스(B)'}를 맞혔어요.`;
     } else {
       // 퀴즈 질문에 따라 다른 오답 메시지
@@ -200,7 +188,7 @@ export default function OxQuizDetailPage({ params }: PageProps) {
   };
 
   const handleSubmit = () => {
-    if (!selected || !quiz) return;
+    if (!selected || !quizData) return;
     submitAnswer(selected);
   };
 
@@ -250,7 +238,7 @@ export default function OxQuizDetailPage({ params }: PageProps) {
     );
   }
 
-  if (!quiz) {
+  if (!quizData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
         <div className="text-center">
@@ -266,9 +254,18 @@ export default function OxQuizDetailPage({ params }: PageProps) {
     );
   }
 
-  // 이미 푼 퀴즈 화면
-  if (isSolved) {
-    const solvedQuiz = quiz as FactQuizDtoWithUserAnswer;
+  // 이미 푼 퀴즈 화면 (answer이 null이 아님)
+  if (quizData.answer !== null) {
+    const correct = quizData.correct;
+    const selectedNewsType = quizData.answer as 'REAL' | 'FAKE';
+    
+    // 디버깅용 로그
+    console.log('=== 이미 푼 퀴즈 디버깅 ===');
+    console.log('quizData:', quizData);
+    console.log('correct:', correct);
+    console.log('answer:', quizData.answer);
+    console.log('gainExp:', quizData.gainExp);
+    console.log('========================');
     
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
@@ -286,48 +283,60 @@ export default function OxQuizDetailPage({ params }: PageProps) {
               </button>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] text-center">OX 퀴즈</h2>
-            <div className="bg-gradient-to-r from-[#e6f1fb] to-[#f7fafd] rounded-xl p-6 border border-[#e0e7ef] shadow-sm mt-8">
-              <div className="text-xl sm:text-2xl font-bold text-[#222] text-center">{solvedQuiz.realNewsTitle}</div>
-              <div className="text-lg font-semibold text-[#10b981] text-center mt-3">{solvedQuiz.question}</div>
-            </div>
+                                    <div className="mt-8">
+             <div className="text-xl sm:text-2xl font-bold text-[#222] text-center">{quizData.factQuizDto.realNewsTitle}</div>
+             <div className="text-lg font-semibold text-[#10b981] text-center mt-3">{quizData.factQuizDto.question}</div>
+             <div className="w-full h-0.5 bg-gray-400 my-4"></div>
+           </div>
             <div className="flex flex-col gap-6 w-full items-stretch justify-center">
-              <div
-                className={`w-full rounded-xl border-2 p-8 transition-all shadow-sm min-h-[200px] flex flex-col
-                  ${solvedQuiz.selectedNewsType === 'REAL' ? (solvedQuiz.isCorrect ? 'ring-2 ring-green-400 border-[#7f9cf5] bg-[#e6f0ff]' : 'ring-2 ring-red-400 border-[#e0e7ef] bg-[#f7fafd]') : 'border-[#e0e7ef] bg-[#f7fafd]'}
-                `}
-              >
-                <div className="font-semibold text-[#2b6cb0] mb-4 text-lg">뉴스 A</div>
-                <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium">{solvedQuiz.realNewsContent}</div>
+                             <div
+                 className={`w-full rounded-xl border-2 p-8 transition-all shadow-sm min-h-[200px] flex flex-col
+                   ${selectedNewsType === 'REAL' ? (correct ? 'ring-2 ring-green-400 border-[#7f9cf5] bg-[#e6f0ff]' : 'ring-2 ring-red-400 border-[#e0e7ef] bg-[#f7fafd]') : 'border-[#e0e7ef] bg-[#f7fafd]'}
+                 `}
+               >
+                                                                   <div className="font-semibold text-[#2b6cb0] mb-4 text-lg bg-[#e0f2fe] p-4 rounded-t-lg -m-8 mb-4 text-center">뉴스 A</div>
+                 <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium pt-8 pb-6 px-6 rounded-lg">{quizData.factQuizDto.realNewsContent}</div>
               </div>
-              <div
-                className={`w-full rounded-xl border-2 p-8 transition-all shadow-sm min-h-[200px] flex flex-col
-                  ${solvedQuiz.selectedNewsType === 'FAKE' ? (!solvedQuiz.isCorrect ? 'ring-2 ring-green-400 border-[#7f9cf5] bg-[#e6f0ff]' : 'ring-2 ring-red-400 border-[#e0e7ef] bg-[#f7fafd]') : 'border-[#e0e7ef] bg-[#f7fafd]'}
-                `}
-              >
-                <div className="font-semibold text-[#2b6cb0] mb-4 text-lg">뉴스 B</div>
-                <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium">{solvedQuiz.fakeNewsContent}</div>
+                             <div
+                 className={`w-full rounded-xl border-2 p-8 transition-all shadow-sm min-h-[200px] flex flex-col
+                   ${selectedNewsType === 'FAKE' ? (correct ? 'ring-2 ring-green-400 border-[#7f9cf5] bg-[#e6f0ff]' : 'ring-2 ring-red-400 border-[#e0e7ef] bg-[#f7fafd]') : 'border-[#e0e7ef] bg-[#f7fafd]'}
+                 `}
+               >
+                                                                   <div className="font-semibold text-[#2b6cb0] mb-4 text-lg bg-[#e0f2fe] p-4 rounded-t-lg -m-8 mb-4 text-center">뉴스 B</div>
+                 <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium pt-8 pb-6 px-6 rounded-lg">{quizData.factQuizDto.fakeNewsContent}</div>
               </div>
             </div>
-            <div className={`text-center text-lg font-semibold mt-2 ${solvedQuiz.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
-              {getResultMessage(solvedQuiz.isCorrect, solvedQuiz.correctNewsType, solvedQuiz.question)}
-            </div>
-            <div className="mt-4 text-center text-gray-500">이미 푼 퀴즈입니다.</div>
+
             
-            {/* 경험치 정보 */}
-            <div className="mt-4">
-              <div className="bg-[#e6f1fb] rounded-xl p-4 flex flex-col items-center shadow">
-                <div className="text-xs text-gray-500 mb-1">얻은 경험치</div>
-                <div className="text-xl font-bold text-[#43e6b5]">+{solvedQuiz.gainExp}점</div>
+                         {/* 결과 UI - POST 요청 후와 동일하게 */}
+             <div className="mt-6 text-center">
+               {/* 결과 아이콘 */}
+               <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${correct ? 'bg-green-100' : 'bg-pink-100'}`}>
+                 <span className={`text-2xl ${correct ? 'text-green-600' : 'text-red-600'}`}>
+                   {correct ? '✓' : '✗'}
+                 </span>
+               </div>
+               
+               {/* 결과 메시지 */}
+               <div className={`text-xl font-bold mb-2 ${correct ? 'text-green-700' : 'text-red-700'}`}>
+                 {correct ? '정답입니다!' : '오답입니다'}
+               </div>
+              
+              {/* 경험치 정보 */}
+              <div className="bg-white rounded-xl p-4 mb-4 shadow-sm">
+                <div className="text-sm text-gray-500 mb-1">얻은 경험치</div>
+                <div className="text-2xl font-bold text-blue-400">+{quizData.gainExp}점</div>
               </div>
             </div>
+            
+            <div className="mt-4 text-center text-gray-500">이미 푼 퀴즈입니다.</div>
           </div>
         </div>
       </div>
     );
   }
 
-  // 안 푼 퀴즈 화면
-  const unsolvedQuiz = quiz as FactQuizDtoWithNewsContent;
+  // 안 푼 퀴즈 화면 (answer이 null)
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
@@ -345,11 +354,11 @@ export default function OxQuizDetailPage({ params }: PageProps) {
             </button>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] text-center">OX 퀴즈</h2>
-          <div className="mt-8">
-            <div className="text-xl sm:text-2xl font-bold text-[#222] text-center mb-4">{unsolvedQuiz.realNewsTitle}</div>
-            <div className="w-full h-px bg-gray-300 mb-4"></div>
-            <div className="text-lg font-semibold text-[#10b981] text-center">{unsolvedQuiz.question}</div>
-          </div>
+                     <div className="mt-8">
+             <div className="text-xl sm:text-2xl font-bold text-[#222] text-center">{quizData.factQuizDto.realNewsTitle}</div>
+             <div className="text-lg font-semibold text-[#10b981] text-center mt-3">{quizData.factQuizDto.question}</div>
+             <div className="w-full h-0.5 bg-gray-400 my-4"></div>
+           </div>
           <div className="flex flex-col gap-6 w-full items-stretch justify-center">
             <div
               onClick={() => !submitted && setSelected('real')}
@@ -363,8 +372,8 @@ export default function OxQuizDetailPage({ params }: PageProps) {
               {submitted && answerResult?.selectedNewsType === 'REAL' && (
                 <div className="absolute inset-0 bg-gray-600 opacity-15 rounded-xl pointer-events-none" style={{ margin: '-2px' }}></div>
               )}
-              <div className="font-semibold text-[#2b6cb0] mb-4 text-lg bg-[#e0f2fe] p-4 rounded-t-lg -m-8 mb-4 text-center">뉴스 A</div>
-              <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium pt-8 pb-6 px-6 rounded-lg">{unsolvedQuiz.realNewsContent}</div>
+                             <div className="font-semibold text-[#2b6cb0] mb-4 text-lg bg-[#e0f2fe] p-4 rounded-t-lg -m-8 mb-4 text-center">뉴스 A</div>
+              <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium pt-8 pb-6 px-6 rounded-lg">{quizData.factQuizDto.realNewsContent}</div>
             </div>
             <div
               onClick={() => !submitted && setSelected('fake')}
@@ -378,8 +387,8 @@ export default function OxQuizDetailPage({ params }: PageProps) {
               {submitted && answerResult?.selectedNewsType === 'FAKE' && (
                 <div className="absolute inset-0 bg-gray-600 opacity-15 rounded-xl pointer-events-none" style={{ margin: '-2px' }}></div>
               )}
-              <div className="font-semibold text-[#2b6cb0] mb-4 text-lg bg-[#e0f2fe] p-4 rounded-t-lg -m-8 mb-4 text-center">뉴스 B</div>
-              <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium pt-8 pb-6 px-6 rounded-lg">{unsolvedQuiz.fakeNewsContent}</div>
+                             <div className="font-semibold text-[#2b6cb0] mb-4 text-lg bg-[#e0f2fe] p-4 rounded-t-lg -m-8 mb-4 text-center">뉴스 B</div>
+              <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium pt-8 pb-6 px-6 rounded-lg">{quizData.factQuizDto.fakeNewsContent}</div>
             </div>
           </div>
           {!submitted && (
@@ -396,27 +405,27 @@ export default function OxQuizDetailPage({ params }: PageProps) {
           {/* 새로운 결과 UI */}
           {submitted && answerResult && (
             <div className="mt-6 text-center">
-              {/* 결과 아이콘 */}
-              <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${answerResult.correct ? 'bg-green-100' : 'bg-pink-100'}`}>
-                <span className={`text-2xl ${answerResult.correct ? 'text-green-600' : 'text-red-600'}`}>
-                  {answerResult.correct ? '✓' : '✗'}
-                </span>
-              </div>
-              
-              {/* 결과 메시지 */}
-              <div className={`text-xl font-bold mb-2 ${answerResult.correct ? 'text-green-700' : 'text-red-700'}`}>
-                {answerResult.correct ? '정답입니다!' : '오답입니다'}
-              </div>
-              
-              <div className="text-lg text-gray-700 mb-4">
-                {getResultMessage(answerResult.correct, answerResult.correctNewsType, unsolvedQuiz.question)}
-              </div>
-              
-              {/* 경험치 정보 */}
-              <div className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-                <div className="text-sm text-gray-500 mb-1">얻은 경험치</div>
-                <div className="text-2xl font-bold text-blue-400">+{answerResult.gainExp}점</div>
-              </div>
+                             {/* 결과 아이콘 */}
+               <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${answerResult.correct ? 'bg-green-100' : 'bg-pink-100'}`}>
+                 <span className={`text-2xl ${answerResult.correct ? 'text-green-600' : 'text-red-600'}`}>
+                   {answerResult.correct ? '✓' : '✗'}
+                 </span>
+               </div>
+               
+               {/* 결과 메시지 */}
+               <div className={`text-xl font-bold mb-2 ${answerResult.correct ? 'text-green-700' : 'text-red-700'}`}>
+                 {answerResult.correct ? '정답입니다!' : '오답입니다'}
+               </div>
+               
+               <div className="text-lg text-gray-700 mb-4">
+                 {getResultMessage(answerResult.correct, answerResult.correctNewsType, quizData.factQuizDto.question)}
+               </div>
+               
+               {/* 경험치 정보 */}
+               <div className="bg-white rounded-xl p-4 mb-4 shadow-sm">
+                 <div className="text-sm text-gray-500 mb-1">얻은 경험치</div>
+                 <div className="text-2xl font-bold text-blue-400">+{answerResult.gainExp}점</div>
+               </div>
               
               {/* 안내 메시지 */}
               <div className="text-sm text-gray-600">

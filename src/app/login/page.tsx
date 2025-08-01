@@ -19,19 +19,6 @@ export default function LoginPage() {
   // 유효성 검사 에러 메시지
   const [emailError, setEmailError] = useState("");
 
-  // URL에서 리다이렉트 정보 가져오기
-  const getRedirectPath = () => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const redirect = urlParams.get('redirect');
-      console.log('URL 파라미터에서 redirect 값:', redirect);
-      console.log('현재 페이지 URL:', window.location.href);
-      console.log('최종 리다이렉트 경로:', redirect || '/');
-      return redirect || '/';
-    }
-    return '/';
-  };
-
   // 이메일 유효성 검사
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -76,12 +63,7 @@ export default function LoginPage() {
       // 로그인 성공 - AuthContext에 사용자 정보 저장
       login(data.data.member);
       alert(data.message);
-      
-      // 리다이렉트 경로로 이동
-      const redirectPath = getRedirectPath();
-      console.log('리다이렉트 경로:', redirectPath);
-      console.log('현재 URL:', window.location.href);
-      router.replace(redirectPath);
+      router.replace("/");
     } catch (error) {
       setError(error instanceof Error ? error.message : "로그인에 실패했습니다.");
     } finally {
@@ -156,13 +138,8 @@ export default function LoginPage() {
         >
           <Image src="/social/naver_login.png" alt="네이버 로고" width={24} height={24} className="group-hover:opacity-80 transition" />
           <span>네이버로 로그인</span>
-<<<<<<< HEAD
         </a>  
 
-=======
-        </button>
-        
->>>>>>> b0ee16a (work)
         {/* 구글 소셜로그인 */}
         <a 
           href="http://localhost:8080/oauth2/authorization/google?redirectUrl=http://localhost:3000/"
@@ -170,13 +147,8 @@ export default function LoginPage() {
         >
           <Image src="/social/google_login.png" alt="구글 로고" width={24} height={24} className="ml-[-13px] group-hover:opacity-80 transition" />
           <span>구글로 로그인</span>
-<<<<<<< HEAD
         </a>  
 
-=======
-        </button>
-        
->>>>>>> b0ee16a (work)
         {/* 카카오 소셜로그인 */}
         <a 
           href="http://localhost:8080/oauth2/authorization/kakao?redirectUrl=http://localhost:3000/"
@@ -184,11 +156,7 @@ export default function LoginPage() {
         >
           <Image src="/social/kakao_login.png" alt="카카오 로고" width={24} height={24} className="group-hover:opacity-70 transition" />
           <span>카카오로 로그인</span>
-<<<<<<< HEAD
         </a>  
-=======
-        </button>
->>>>>>> b0ee16a (work)
         
         <Link href="/register" className="mt-4 text-center text-[#2b6cb0] font-semibold hover:underline">
           회원가입하기
