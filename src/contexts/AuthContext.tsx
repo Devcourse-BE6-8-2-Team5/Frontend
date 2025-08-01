@@ -84,8 +84,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(data.data);
           setIsAuthenticated(true);
         }
+      } else if (response.status === 401) {
+        console.log('사용자가 로그인되지 않았습니다.');
+        setUser(null);
+        setIsAuthenticated(false);
+        localStorage.removeItem('user');
       } else {
-        // 인증되지 않은 경우
+        console.error('인증 확인 실패:', response.status);
         setUser(null);
         setIsAuthenticated(false);
         localStorage.removeItem('user');

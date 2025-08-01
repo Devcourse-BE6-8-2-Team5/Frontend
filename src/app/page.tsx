@@ -6,15 +6,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from "@/contexts/AuthContext";
 
-interface TodayNews {
-  id: number;
-  title: string;
-  content: string;
-  originCreatedDate: string;
-  journalist: string;
-  mediaName: string;
-  imgUrl?: string;
-}
+
 
 interface NewsArticle {
   id: number;
@@ -42,8 +34,7 @@ interface NewsPage {
 
 export default function Home() {
   const searchParams = useSearchParams();
-  const [todayNews, setTodayNews] = useState<TodayNews | null>(null);
-  const [loading, setLoading] = useState(true);
+
   const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -56,33 +47,23 @@ export default function Home() {
     const loginSuccess = searchParams.get('loginSuccess');
     const message = searchParams.get('message');
 
+
+    const redirect = searchParams.get('redirect');
+
     if (loginSuccess === 'true' && message) {
       alert(message); // 카카오 로그인 성공 메시지 팝업
       // 소셜로그인 성공 후 최신 사용자 정보 가져오기
       checkAuth();
+      
+      // 리다이렉트 파라미터가 있으면 해당 페이지로 이동
+      if (redirect) {
+        console.log('소셜 로그인 성공 후 리다이렉트:', redirect);
+        window.location.href = redirect;
+      }
     }
   }, [searchParams, checkAuth]);
 
-  // 오늘의 뉴스 불러오기
-  useEffect(() => {
-    const fetchTodayNews = async () => {
-      try {
-        const res = await fetch('/api/news/today');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.code === 200 && data.data) {
-            setTodayNews(data.data);
-          }
-        }
-      } catch (error) {
-        console.error('오늘의 뉴스 조회 실패:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchTodayNews();
-  }, []);
 
   // 뉴스 기사 목록 불러오기
   useEffect(() => {
