@@ -6,15 +6,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from "@/contexts/AuthContext";
 
-interface TodayNews {
-  id: number;
-  title: string;
-  content: string;
-  originCreatedDate: string;
-  journalist: string;
-  mediaName: string;
-  imgUrl?: string;
-}
+
 
 interface NewsArticle {
   id: number;
@@ -42,8 +34,7 @@ interface NewsPage {
 
 export default function Home() {
   const searchParams = useSearchParams();
-  const [todayNews, setTodayNews] = useState<TodayNews | null>(null);
-  const [loading, setLoading] = useState(true);
+
   const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,34 +46,22 @@ export default function Home() {
   useEffect(() => {
     const loginSuccess = searchParams.get('loginSuccess');
     const message = searchParams.get('message');
+    const redirect = searchParams.get('redirect');
     
     if (loginSuccess === 'true' && message) {
       alert(message); // 카카오 로그인 성공 메시지 팝업
       // 소셜로그인 성공 후 최신 사용자 정보 가져오기
       checkAuth();
+      
+      // 리다이렉트 파라미터가 있으면 해당 페이지로 이동
+      if (redirect) {
+        console.log('소셜 로그인 성공 후 리다이렉트:', redirect);
+        window.location.href = redirect;
+      }
     }
   }, [searchParams, checkAuth]);
 
-  // 오늘의 뉴스 불러오기
-  useEffect(() => {
-    const fetchTodayNews = async () => {
-      try {
-        const res = await fetch('/api/news/today');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.code === 200 && data.data) {
-            setTodayNews(data.data);
-          }
-        }
-      } catch (error) {
-        console.error('오늘의 뉴스 조회 실패:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchTodayNews();
-  }, []);
 
   // 뉴스 기사 목록 불러오기
   useEffect(() => {
@@ -143,35 +122,8 @@ export default function Home() {
       <div className="flex flex-col items-center w-full gap-10 mt-2 pt-20">
         <div className="flex flex-row gap-8 w-full max-w-4xl justify-center">
           {/* 오늘의 뉴스 카드 */}
-          <Link href="/todaynews" className="flex-1 min-w-[260px] max-w-[400px] h-[180px] rounded-3xl bg-gradient-to-b from-[#bfe0f5] via-[#8fa4c3] via-70% to-[#e6f1fb] flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer overflow-hidden relative">
-            {loading ? (
-              <span className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-md">오늘의 뉴스</span>
-            ) : todayNews ? (
-              <>
-                {/* 배경 이미지 */}
-                {todayNews.imgUrl && (
-                  <div className="absolute inset-0 z-0">
-                    <Image
-                      src={todayNews.imgUrl}
-                      alt="오늘의 뉴스"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                )}
-                {/* 뉴스 정보 - 제목을 아래에 배치 */}
-                <div className="relative z-10 flex flex-col items-center justify-end text-center px-4 pb-6 h-full">
-                  <div className="text-lg sm:text-xl font-bold text-white drop-shadow-md mb-2 line-clamp-2">
-                    {todayNews.title}
-                  </div>
-                  <div className="text-sm text-white/90 drop-shadow-sm">
-                    {todayNews.mediaName} • {new Date(todayNews.originCreatedDate).toLocaleDateString()}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <span className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-md">오늘의 뉴스</span>
-            )}
+          <Link href="/todaynews" className="flex-1 min-w-[260px] max-w-[400px] h-[180px] rounded-3xl bg-gradient-to-b from-[#bfe0f5] via-[#8fa4c3] via-70% to-[#e6f1fb] flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
+            <span className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-md">오늘의 뉴스</span>
           </Link>
           {/* OX 퀴즈 카드 */}
           <Link href="/oxquiz" className="flex-1 min-w-[260px] max-w-[400px] h-[180px] rounded-3xl bg-gradient-to-b from-[#bfe0f5] via-[#8fa4c3] via-70% to-[#e6f1fb] flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
