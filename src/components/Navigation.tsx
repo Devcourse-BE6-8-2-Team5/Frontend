@@ -17,7 +17,6 @@ export default function Navigation() {
     if (user) {
       console.log("Navigation - 사용자 정보:", user);
       console.log("Navigation - 프로필 사진 Url:", user.profileImgUrl);
-      setImageError(false); // 새로운 사용자 정보가 오면 에러 상태 초기화
     }
   }, [user]);
 

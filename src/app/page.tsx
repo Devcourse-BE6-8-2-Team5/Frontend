@@ -32,9 +32,19 @@ interface NewsPage {
   last: boolean;
 }
 
+interface TodayNews {
+  id: number;
+  title: string;
+  content: string;
+  imgUrl?: string;
+  originCreatedDate: string;
+  mediaName: string;
+}
+
 export default function Home() {
   const searchParams = useSearchParams();
-
+  const [todayNews, setTodayNews] = useState<TodayNews | null>(null);
+  const [loading, setLoading] = useState(true);
   const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -63,7 +73,26 @@ export default function Home() {
     }
   }, [searchParams, checkAuth]);
 
-
+  // 오늘의 뉴스 불러오기
+  useEffect(() => {
+    const fetchTodayNews = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/news/today');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.code === 200 && data.data) {
+            setTodayNews(data.data);
+          }
+        }
+      } catch (error) {
+        console.error('오늘의 뉴스 조회 실패:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTodayNews();
+  }, []);
 
   // 뉴스 기사 목록 불러오기
   useEffect(() => {

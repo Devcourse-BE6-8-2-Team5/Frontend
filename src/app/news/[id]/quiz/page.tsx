@@ -255,11 +255,6 @@ export default function NewsQuizPage() {
 
     // 퀴즈 완료 후 마이페이지 정보 새로고침을 위한 이벤트 발생
     window.dispatchEvent(new CustomEvent('quizCompleted'));
-
-    // 잠시 후 메인페이지로 리다이렉트 (선택사항)
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 2000);
   };
 
   const handleCloseLevelUp = () => {
