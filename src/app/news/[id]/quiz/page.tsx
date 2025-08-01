@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { FaRegNewspaper } from "react-icons/fa";
 import { useParams } from "next/navigation";
+import { getCharacterInfo, CharacterInfo } from "@/utils/characterUtils";
 
 interface DetailQuiz {
   id: number;
@@ -19,6 +20,15 @@ interface QuizResult {
   total_exp: number;
 }
 
+interface QuizHistory {
+  id: number;
+  quizId: number;
+  answer: string;
+  isCorrect: boolean;
+  gainExp: number;
+  createdDate: string;
+}
+
 export default function NewsQuizPage() {
   const params = useParams();
   const newsId = params.id;
@@ -29,6 +39,11 @@ export default function NewsQuizPage() {
   const [result, setResult] = useState<QuizResult | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
+  const [alreadySolved, setAlreadySolved] = useState(false);
+  const [solvedHistory, setSolvedHistory] = useState<QuizHistory[]>([]);
+  const [characterInfo, setCharacterInfo] = useState<CharacterInfo | null>(null);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [previousLevel, setPreviousLevel] = useState(1);
 
   // 뉴스 제목도 API로 받아오고 싶으면 추가 fetch 필요
   const [newsTitle, setNewsTitle] = useState<string>("");
@@ -55,6 +70,75 @@ export default function NewsQuizPage() {
     fetchQuizzes();
   }, [newsId]);
 
+  // 사용자가 이미 퀴즈를 풀었는지 확인
+  useEffect(() => {
+    if (!newsId || quizzes.length === 0) return;
+    const checkAlreadySolved = async () => {
+      try {
+        // 각 퀴즈에 대해 사용자가 풀었는지 확인
+        let solvedCount = 0;
+        const solvedHistories: QuizHistory[] = [];
+
+        for (let i = 0; i < quizzes.length; i++) {
+          const quiz = quizzes[i];
+          try {
+            const historyRes = await fetch(`/api/quiz/detail/${quiz.id}`, {
+              credentials: 'include',
+            });
+            if (historyRes.ok) {
+              const historyData = await historyRes.json();
+              if (historyData.code === 200 && historyData.data && historyData.data.answer !== null) {
+                solvedCount++;
+                // 퀴즈 히스토리 정보 저장
+                solvedHistories.push({
+                  id: historyData.data.detailQuizResDto?.id || i,
+                  quizId: quiz.id,
+                  answer: historyData.data.answer || "",
+                  isCorrect: historyData.data.isCorrect || false,
+                  gainExp: historyData.data.gainExp || 0,
+                  createdDate: new Date().toISOString()
+                });
+              }
+            }
+          } catch (error) {
+            console.error(`퀴즈 ${i + 1} 히스토리 확인 오류:`, error);
+          }
+        }
+
+        // 모든 퀴즈를 풀었으면 완료로 간주
+        if (solvedCount === quizzes.length && quizzes.length > 0) {
+          setAlreadySolved(true);
+          setSolvedHistory(solvedHistories);
+
+          // 이미 푼 퀴즈 결과를 result로 설정
+          const solvedDetails = solvedHistories.map((history: QuizHistory, idx: number) => {
+            const quiz = quizzes.find(q => q.id === history.quizId);
+            return {
+              idx: idx,
+              is_correct: history.isCorrect,
+              user_answer: history.answer,
+              correct_option: quiz?.correctOption || "OPTION1",
+              gainExp: history.gainExp
+            };
+          });
+
+          const totalCorrectCount = solvedHistories.filter((h: QuizHistory) => h.isCorrect).length;
+          const totalExpGained = solvedHistories.reduce((sum: number, h: QuizHistory) => sum + h.gainExp, 0);
+
+          setResult({
+            details: solvedDetails,
+            correct_count: totalCorrectCount,
+            exp_gained: totalExpGained,
+            total_exp: totalExpGained
+          });
+        }
+      } catch (error) {
+        console.error('퀴즈 풀이 여부 확인 오류:', error);
+      }
+    };
+    checkAlreadySolved();
+  }, [newsId, quizzes]);
+
   // 뉴스 제목도 불러오기 (선택)
   useEffect(() => {
     if (!newsId) return;
@@ -77,6 +161,16 @@ export default function NewsQuizPage() {
       if (Object.keys(answers).length !== quizzes.length) {
         alert('모든 퀴즈에 답변을 선택해주세요.');
         return;
+      }
+
+      // 현재 사용자 정보 가져오기
+      const userRes = await fetch('/api/members/info', {
+        credentials: 'include',
+      });
+      if (userRes.ok) {
+        const userData = await userRes.json();
+        const currentCharacter = getCharacterInfo(userData.data.exp, userData.data.level);
+        setPreviousLevel(currentCharacter.level);
       }
 
       // 각 퀴즈를 개별적으로 제출
@@ -127,6 +221,21 @@ export default function NewsQuizPage() {
         }
       }
 
+      // 업데이트된 사용자 정보 가져오기
+      const updatedUserRes = await fetch('/api/members/info', {
+        credentials: 'include',
+      });
+      if (updatedUserRes.ok) {
+        const updatedUserData = await updatedUserRes.json();
+        const newCharacter = getCharacterInfo(updatedUserData.data.exp, updatedUserData.data.level);
+        setCharacterInfo(newCharacter);
+
+        // 레벨업 체크
+        if (newCharacter.level > previousLevel) {
+          setShowLevelUp(true);
+        }
+      }
+
       setResult({
         details: results,
         correct_count: totalCorrectCount,
@@ -151,6 +260,10 @@ export default function NewsQuizPage() {
     setTimeout(() => {
       window.location.href = '/';
     }, 2000);
+  };
+
+  const handleCloseLevelUp = () => {
+    setShowLevelUp(false);
   };
 
   // 뉴스 정보 카드
@@ -308,6 +421,25 @@ export default function NewsQuizPage() {
                 <button
                     className="mt-4 w-full py-2 rounded-full bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold shadow hover:opacity-90 transition"
                     onClick={handleCloseResult}
+                >
+                  확인
+                </button>
+              </div>
+            </div>
+        )}
+
+        {/* 레벨업 팝업 */}
+        {showLevelUp && characterInfo && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
+              <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md flex flex-col gap-4">
+                <h2 className="text-xl font-bold text-[#2b6cb0] mb-2">레벨 업!</h2>
+                <p className="text-lg text-gray-700 mb-4">
+                  레벨 {characterInfo.level}로 업그레이드되었습니다!
+                  새로운 기술을 활용하여 더 많은 지식을 습득해보세요.
+                </p>
+                <button
+                    className="mt-4 w-full py-2 rounded-full bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold shadow hover:opacity-90 transition"
+                    onClick={handleCloseLevelUp}
                 >
                   확인
                 </button>
