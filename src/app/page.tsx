@@ -41,6 +41,15 @@ interface TodayNews {
   mediaName: string;
 }
 
+interface RankingMember {
+  id: number;
+  name: string;
+  exp: number;
+  level: number;
+  characterImage: string;
+  rank: number;
+}
+
 export default function Home() {
   const searchParams = useSearchParams();
   const [todayNews, setTodayNews] = useState<TodayNews | null>(null);
@@ -51,6 +60,8 @@ export default function Home() {
   const [totalPages, setTotalPages] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [rankingMembers, setRankingMembers] = useState<RankingMember[]>([]);
+  const [rankingLoading, setRankingLoading] = useState(true);
   const { checkAuth } = useAuth();
 
   useEffect(() => {
@@ -146,13 +157,38 @@ export default function Home() {
     fetchNewsArticles();
   }, [currentPage, searchQuery, selectedCategory]);
 
+  // 랭킹 데이터 불러오기
+  useEffect(() => {
+    const fetchRanking = async () => {
+      setRankingLoading(true);
+      try {
+        const res = await fetch('/api/members/rank');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.code === 200 && data.data) {
+            const rankingData = data.data.map((member: any, index: number) => ({
+              ...member,
+              rank: index + 1
+            }));
+            setRankingMembers(rankingData);
+          }
+        }
+      } catch (error) {
+        console.error('랭킹 데이터 조회 실패:', error);
+      } finally {
+        setRankingLoading(false);
+      }
+    };
+    fetchRanking();
+  }, []);
+
   return (
       <div className="font-sans min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] flex flex-col items-center relative">
         {/* 상단 네비게이션은 layout.tsx에서 공통 처리됨 */}
 
         {/* 상단 카드 영역 */}
         <div className="flex flex-col items-center w-full gap-10 mt-2 pt-20">
-          <div className="flex flex-row gap-8 w-full max-w-4xl justify-center">
+          <div className="flex flex-row gap-8 w-full max-w-6xl justify-center relative">
             {/* 오늘의 뉴스 카드 */}
             <Link href="/todaynews" className="flex-1 min-w-[260px] max-w-[400px] h-[180px] rounded-3xl bg-gradient-to-b from-[#bfe0f5] via-[#8fa4c3] via-70% to-[#e6f1fb] flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer overflow-hidden relative">
               {loading ? (
@@ -188,6 +224,51 @@ export default function Home() {
             <Link href="/oxquiz" className="flex-1 min-w-[260px] max-w-[400px] h-[180px] rounded-3xl bg-gradient-to-b from-[#bfe0f5] via-[#8fa4c3] via-70% to-[#e6f1fb] flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
               <span className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-md">OX 퀴즈</span>
             </Link>
+            
+            {/* 랭킹 컴포넌트 - OX 퀴즈 카드 옆에 배치 */}
+            <div className="hidden lg:block w-64">
+              <div className="bg-white/95 rounded-2xl shadow-lg p-4 border border-white/50 backdrop-blur-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <svg className="w-5 h-5 text-[#2b6cb0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                  <h3 className="text-lg font-bold text-[#2b6cb0]">🏆 랭킹</h3>
+                </div>
+                
+                {rankingLoading ? (
+                  <div className="text-sm text-gray-500 text-center py-4">랭킹 로딩 중...</div>
+                ) : rankingMembers.length === 0 ? (
+                  <div className="text-sm text-gray-500 text-center py-4">랭킹 데이터가 없습니다.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {rankingMembers.slice(0, 3).map((member) => (
+                      <div key={member.id} className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-[#f8fafc] to-[#e6f1fb] border border-[#e0e7ef]/50">
+                        {/* 순위 */}
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          member.rank === 1 ? 'bg-yellow-400 text-white' :
+                          member.rank === 2 ? 'bg-gray-300 text-white' :
+                          member.rank === 3 ? 'bg-orange-400 text-white' :
+                          'bg-[#7f9cf5] text-white'
+                        }`}>
+                          {member.rank}
+                        </div>
+                        
+                        {/* 캐릭터 이미지 */}
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7f9cf5] to-[#43e6b5] flex items-center justify-center">
+                          <span className="text-sm">{member.characterImage}</span>
+                        </div>
+                        
+                        {/* 사용자 정보 */}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-[#2b6cb0] truncate">{member.name}</div>
+                          <div className="text-xs text-[#64748b]">Lv.{member.level} • {member.exp}EXP</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           {/* 카테고리 버튼 */}
           <div className="flex flex-row gap-4 w-full max-w-2xl justify-center mt-14">
