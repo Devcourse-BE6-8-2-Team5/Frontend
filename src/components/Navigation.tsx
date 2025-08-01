@@ -4,16 +4,27 @@ import Link from "next/link";
 import Image from "next/image";
 import { FaUserCircle } from "react-icons/fa";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { getCharacterImageByLevel } from "@/utils/characterUtils";
 
 export default function Navigation() {
   const { isAuthenticated, user, logout } = useAuth();
+  const [characterImage, setCharacterImage] = useState<string>("🐣");
+
 
   // 디버깅용: 사용자 정보 출력
   useEffect(() => {
     if (user) {
-      console.log("Navigation - User info:", user);
-      console.log("Navigation - profileImgUrl:", user.profileImgUrl);
+      console.log("Navigation - 사용자 정보:", user);
+      console.log("Navigation - 프로필 사진 Url:", user.profileImgUrl);
+    }
+  }, [user]);
+
+  // 사용자 레벨에 따른 캐릭터 이미지 설정
+  useEffect(() => {
+    if (user && user.level) {
+      const image = getCharacterImageByLevel(user.level);
+      setCharacterImage(image);
     }
   }, [user]);
 
@@ -33,21 +44,12 @@ export default function Navigation() {
               <span className="text-[#2b6cb0] font-semibold">
                 {user?.name}님
               </span>
-              <Link href="/mypage" className="text-[#2b6cb0] hover:text-[#5ac7b2] transition">
-                {user?.profileImgUrl ? (
-                  <div className="w-8 h-8 rounded-full overflow-hidden">
-                    <Image
-                      src={user.profileImgUrl}
-                      alt="프로필 이미지"
-                      width={32}
-                      height={32}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <FaUserCircle size={32} />
-                )}
+              
+              {/* 캐릭터 이미지로 마이페이지 링크 */}
+              <Link href="/mypage" className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7f9cf5] to-[#43e6b5] flex items-center justify-center shadow-md hover:scale-110 transition-transform">
+                <span className="text-lg">{characterImage}</span>
               </Link>
+
             </div>
             <button 
               onClick={handleLogout}

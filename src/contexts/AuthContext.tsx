@@ -8,6 +8,8 @@ interface User {
   email: string;
   role: string;
   profileImgUrl?: string;
+  level?: number;
+  exp?: number;
 }
 
 interface AuthContextType {
@@ -54,7 +56,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         method: 'DELETE',
         credentials: 'include',
       });
-      
+
       if (response.ok) {
         alert('로그아웃되었습니다.');
         // 메인페이지로 리다이렉트
@@ -75,15 +77,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await fetch('/api/members/info', {
         credentials: 'include',
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data.data) {
           setUser(data.data);
           setIsAuthenticated(true);
         }
+      } else if (response.status === 401) {
+        console.log('사용자가 로그인되지 않았습니다.');
+        setUser(null);
+        setIsAuthenticated(false);
+        localStorage.removeItem('user');
       } else {
-        // 인증되지 않은 경우
+        console.error('인증 확인 실패:', response.status);
         setUser(null);
         setIsAuthenticated(false);
         localStorage.removeItem('user');
@@ -109,8 +116,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+      <AuthContext.Provider value={value}>
+        {children}
+      </AuthContext.Provider>
   );
 }; 
