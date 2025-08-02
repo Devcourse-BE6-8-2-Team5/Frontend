@@ -288,24 +288,30 @@ export default function OxQuizDetailPage({ params }: PageProps) {
              <div className="text-lg font-semibold text-[#10b981] text-center mt-3">{quizData.factQuizDto.question}</div>
              <div className="w-full h-0.5 bg-gray-400 my-4"></div>
            </div>
-            <div className="flex flex-col gap-6 w-full items-stretch justify-center">
-                             <div
-                 className={`w-full rounded-xl border-2 p-8 transition-all shadow-sm min-h-[200px] flex flex-col
-                   ${selectedNewsType === 'REAL' ? (correct ? 'ring-2 ring-green-400 border-[#7f9cf5] bg-[#e6f0ff]' : 'ring-2 ring-red-400 border-[#e0e7ef] bg-[#f7fafd]') : 'border-[#e0e7ef] bg-[#f7fafd]'}
-                 `}
-               >
-                                                                   <div className="font-semibold text-[#2b6cb0] mb-4 text-lg bg-[#e0f2fe] p-4 rounded-t-lg -m-8 mb-4 text-center">뉴스 A</div>
-                 <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium pt-8 pb-6 px-6 rounded-lg">{quizData.factQuizDto.realNewsContent}</div>
-              </div>
-                             <div
-                 className={`w-full rounded-xl border-2 p-8 transition-all shadow-sm min-h-[200px] flex flex-col
-                   ${selectedNewsType === 'FAKE' ? (correct ? 'ring-2 ring-green-400 border-[#7f9cf5] bg-[#e6f0ff]' : 'ring-2 ring-red-400 border-[#e0e7ef] bg-[#f7fafd]') : 'border-[#e0e7ef] bg-[#f7fafd]'}
-                 `}
-               >
-                                                                   <div className="font-semibold text-[#2b6cb0] mb-4 text-lg bg-[#e0f2fe] p-4 rounded-t-lg -m-8 mb-4 text-center">뉴스 B</div>
-                 <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium pt-8 pb-6 px-6 rounded-lg">{quizData.factQuizDto.fakeNewsContent}</div>
-              </div>
-            </div>
+                         <div className="flex flex-col gap-6 w-full items-stretch justify-center">
+                              <div
+                  className={`w-full rounded-xl p-8 transition-all shadow-sm min-h-[200px] flex flex-col relative border-4 border-gray-100 bg-white
+                    ${selectedNewsType === 'REAL' ? (correct ? 'border-green-500' : 'border-red-300') : ''}
+                  `}
+                >
+                  {selectedNewsType === 'REAL' && (
+                    <div className="absolute inset-0 bg-gray-600 opacity-15 rounded-xl pointer-events-none" style={{ margin: '-2px' }}></div>
+                  )}
+                                                                    <div className="font-semibold text-[#2b6cb0] mb-4 text-lg bg-[#e0f2fe] p-4 rounded-t-lg -m-8 mb-4 text-center">뉴스 A</div>
+                  <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium pt-8 pb-6 px-6 rounded-lg">{quizData.factQuizDto.realNewsContent}</div>
+               </div>
+                                                            <div
+                   className={`w-full rounded-xl p-8 transition-all shadow-sm min-h-[200px] flex flex-col relative border-4 border-gray-100 bg-white
+                     ${selectedNewsType === 'FAKE' ? (correct ? 'border-green-500' : 'border-red-300') : ''}
+                   `}
+                 >
+                  {selectedNewsType === 'FAKE' && (
+                    <div className="absolute inset-0 bg-gray-600 opacity-15 rounded-xl pointer-events-none" style={{ margin: '-2px' }}></div>
+                  )}
+                                                                    <div className="font-semibold text-[#2b6cb0] mb-4 text-lg bg-[#e0f2fe] p-4 rounded-t-lg -m-8 mb-4 text-center">뉴스 B</div>
+                  <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium pt-8 pb-6 px-6 rounded-lg">{quizData.factQuizDto.fakeNewsContent}</div>
+               </div>
+             </div>
 
             
                          {/* 결과 UI - POST 요청 후와 동일하게 */}
@@ -329,7 +335,15 @@ export default function OxQuizDetailPage({ params }: PageProps) {
               </div>
             </div>
             
-            <div className="mt-4 text-center text-gray-500">이미 푼 퀴즈입니다.</div>
+                         <div className="flex items-center justify-end gap-3">
+               <div className="text-gray-500">이미 푼 퀴즈입니다.</div>
+               <button
+                 onClick={() => router.push('/oxquiz')}
+                 className="px-4 py-2 bg-[#7f9cf5] text-white rounded-lg hover:bg-[#5a7bd8] transition-colors text-sm font-semibold"
+               >
+                 OX퀴즈목록
+               </button>
+             </div>
           </div>
         </div>
       </div>
@@ -360,34 +374,38 @@ export default function OxQuizDetailPage({ params }: PageProps) {
              <div className="w-full h-0.5 bg-gray-400 my-4"></div>
            </div>
           <div className="flex flex-col gap-6 w-full items-stretch justify-center">
-            <div
-              onClick={() => !submitted && setSelected('real')}
-              className={`w-full rounded-xl border-2 p-8 cursor-pointer transition-all shadow-sm min-h-[200px] flex flex-col bg-white relative
-                ${!submitted && selected === 'real' ? 'border-[#7f9cf5] bg-[#e6f0ff]' : 'border-gray-400'}
-                ${submitted && answerResult?.selectedNewsType === 'REAL' ? 'border-[#7f9cf5] bg-[#e6f0ff]' : ''}
-                ${submitted && answerResult?.selectedNewsType === 'REAL' && answerResult.correct ? 'border-green-500' : ''}
-                ${submitted && answerResult?.selectedNewsType === 'REAL' && !answerResult.correct ? 'border-red-300' : ''}
-              `}
-            >
+                         <div
+               onClick={() => !submitted && setSelected('real')}
+               className={`w-full rounded-xl p-8 transition-all shadow-sm min-h-[200px] flex flex-col relative
+                 ${!submitted ? 'cursor-pointer transform hover:scale-[1.01] hover:bg-[#f0f7ff]' : ''}
+                 ${selected === 'real' ? 'border-4 border-[#7f9cf5] bg-[#f0f7ff]' : 'border-4 border-gray-100 bg-white'}
+                 ${!submitted && selected !== 'real' ? 'hover:border-4 hover:border-[#7f9cf5]' : ''}
+                 ${submitted && answerResult?.selectedNewsType === 'REAL' && answerResult.correct ? 'border-green-500' : ''}
+                 ${submitted && answerResult?.selectedNewsType === 'REAL' && !answerResult.correct ? 'border-red-300' : ''}
+                 ${submitted && selected === 'real' && answerResult?.selectedNewsType !== 'REAL' ? 'border-4 border-[#7f9cf5] bg-[#f0f7ff]' : ''}
+               `}
+             >
               {submitted && answerResult?.selectedNewsType === 'REAL' && (
                 <div className="absolute inset-0 bg-gray-600 opacity-15 rounded-xl pointer-events-none" style={{ margin: '-2px' }}></div>
               )}
-                             <div className="font-semibold text-[#2b6cb0] mb-4 text-lg bg-[#e0f2fe] p-4 rounded-t-lg -m-8 mb-4 text-center">뉴스 A</div>
+                               <div className="font-semibold text-[#2b6cb0] mb-4 text-lg bg-[#e0f2fe] p-4 rounded-t-lg -m-8 mb-4 text-center">뉴스 A</div>
               <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium pt-8 pb-6 px-6 rounded-lg">{quizData.factQuizDto.realNewsContent}</div>
             </div>
-            <div
-              onClick={() => !submitted && setSelected('fake')}
-              className={`w-full rounded-xl border-2 p-8 cursor-pointer transition-all shadow-sm min-h-[200px] flex flex-col bg-white relative
-                ${!submitted && selected === 'fake' ? 'border-[#7f9cf5] bg-[#e6f0ff]' : 'border-gray-400'}
-                ${submitted && answerResult?.selectedNewsType === 'FAKE' ? 'border-[#7f9cf5] bg-[#e6f0ff]' : ''}
-                ${submitted && answerResult?.selectedNewsType === 'FAKE' && answerResult.correctNewsType === 'FAKE' ? 'border-green-500' : ''}
-                ${submitted && answerResult?.selectedNewsType === 'FAKE' && answerResult.correctNewsType !== 'FAKE' ? 'border-red-300' : ''}
-              `}
-            >
+                         <div
+               onClick={() => !submitted && setSelected('fake')}
+               className={`w-full rounded-xl p-8 transition-all shadow-sm min-h-[200px] flex flex-col relative
+                 ${!submitted ? 'cursor-pointer transform hover:scale-[1.01] hover:bg-[#f0f7ff]' : ''}
+                 ${selected === 'fake' ? 'border-4 border-[#7f9cf5] bg-[#f0f7ff]' : 'border-4 border-gray-100 bg-white'}
+                 ${!submitted && selected !== 'fake' ? 'hover:border-4 hover:border-[#7f9cf5]' : ''}
+                 ${submitted && answerResult?.selectedNewsType === 'FAKE' && answerResult.correctNewsType === 'FAKE' ? 'border-green-500' : ''}
+                 ${submitted && answerResult?.selectedNewsType === 'FAKE' && answerResult.correctNewsType !== 'FAKE' ? 'border-red-300' : ''}
+                 ${submitted && selected === 'fake' && answerResult?.selectedNewsType !== 'FAKE' ? 'border-4 border-[#7f9cf5] bg-[#f0f7ff]' : ''}
+               `}
+             >
               {submitted && answerResult?.selectedNewsType === 'FAKE' && (
                 <div className="absolute inset-0 bg-gray-600 opacity-15 rounded-xl pointer-events-none" style={{ margin: '-2px' }}></div>
               )}
-                             <div className="font-semibold text-[#2b6cb0] mb-4 text-lg bg-[#e0f2fe] p-4 rounded-t-lg -m-8 mb-4 text-center">뉴스 B</div>
+                               <div className="font-semibold text-[#2b6cb0] mb-4 text-lg bg-[#e0f2fe] p-4 rounded-t-lg -m-8 mb-4 text-center">뉴스 B</div>
               <div className="text-base text-gray-900 whitespace-pre-line flex-1 leading-relaxed font-medium pt-8 pb-6 px-6 rounded-lg">{quizData.factQuizDto.fakeNewsContent}</div>
             </div>
           </div>
@@ -427,10 +445,18 @@ export default function OxQuizDetailPage({ params }: PageProps) {
                  <div className="text-2xl font-bold text-blue-400">+{answerResult.gainExp}점</div>
                </div>
               
-              {/* 안내 메시지 */}
-              <div className="text-sm text-gray-600">
-                OX퀴즈목록으로 돌아가서 다른 퀴즈를 풀어보세요!
-              </div>
+                             {/* 안내 메시지 */}
+               <div className="flex items-center justify-end gap-3">
+                 <div className="text-sm text-gray-600">
+                   OX퀴즈목록으로 돌아가서 다른 퀴즈를 풀어보세요!
+                 </div>
+                 <button
+                   onClick={() => router.push('/oxquiz')}
+                   className="px-4 py-2 bg-[#7f9cf5] text-white rounded-lg hover:bg-[#5a7bd8] transition-colors text-sm font-semibold"
+                 >
+                   OX퀴즈목록
+                 </button>
+               </div>
             </div>
           )}
         </div>

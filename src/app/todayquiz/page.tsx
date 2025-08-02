@@ -1,10 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import { FaRegNewspaper } from "react-icons/fa";
-import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 
-// 타입 정의
+// 서버 API 구조에 맞게 타입 정의 수정
 interface DailyQuizDto {
   id: number;
   question: string;
@@ -12,6 +11,14 @@ interface DailyQuizDto {
   option2: string;
   option3: string;
   correctOption: 'OPTION1' | 'OPTION2' | 'OPTION3';
+}
+
+interface DailyQuizWithHistoryDto {
+  dailyQuizDto: DailyQuizDto;
+  answer: string | null; // null이면 안 푼 퀴즈, 값이 있으면 푼 퀴즈
+  correct: boolean; // isCorrect → correct로 변경
+  gainExp: number;
+  quizType: string;
 }
 
 interface DailyQuizAnswerDto {
@@ -24,20 +31,6 @@ interface DailyQuizAnswerDto {
   quizType: string;
 }
 
-// 서버 응답 타입 (퀴즈 풀이 전)
-interface DailyQuizResponse {
-  isCompleted: false;
-  quizzes: DailyQuizDto[];
-}
-
-// 서버 응답 타입 (퀴즈 풀이 후)
-interface DailyQuizCompletedResponse {
-  isCompleted: true;
-  quizResults: DailyQuizAnswerDto[];
-  totalCorrect: number;
-  totalExp: number;
-}
-
 interface TodayNews {
   id: number;
   title: string;
@@ -46,11 +39,10 @@ interface TodayNews {
 }
 
 export default function TodayQuizPage() {
-  const { isAuthenticated } = useAuth();
   const router = useRouter();
   
   const [todayNews, setTodayNews] = useState<TodayNews | null>(null);
-  const [quizData, setQuizData] = useState<DailyQuizResponse | DailyQuizCompletedResponse | null>(null);
+  const [dailyQuizzes, setDailyQuizzes] = useState<DailyQuizWithHistoryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [answers, setAnswers] = useState<{ [quizId: number]: 'OPTION1' | 'OPTION2' | 'OPTION3' }>({});
@@ -69,6 +61,7 @@ export default function TodayQuizPage() {
       });
 
       if (response.status === 401) {
+        // 서버에서 인증 필요 응답이 올 때만 로그인 페이지로 리다이렉트
         alert('로그인이 필요합니다.');
         router.push(`/login?redirect=${encodeURIComponent('/todayquiz')}`);
         return null;
@@ -94,7 +87,7 @@ export default function TodayQuizPage() {
     }
   };
 
-  // 오늘의 퀴즈 조회 (서버에서 풀이 상태에 따라 다른 응답)
+  // 오늘의 퀴즈 조회 (서버에서 DailyQuizWithHistoryDto 배열로 응답)
   const fetchDailyQuizzes = async (todayNewsId: number) => {
     try {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -114,8 +107,19 @@ export default function TodayQuizPage() {
       console.log('퀴즈 API 응답:', result);
       if (result.code === 200) {
         console.log('퀴즈 데이터:', result.data);
-        // 서버에서 이미 풀었냐 안 풀었냐에 따라 다른 구조로 보내줌
-        setQuizData(result.data);
+        // 각 퀴즈의 isCorrect 값 확인
+        if (result.data && Array.isArray(result.data)) {
+          result.data.forEach((quiz: any, index: number) => {
+            console.log(`퀴즈 ${index + 1}:`, {
+              id: quiz.dailyQuizDto?.id,
+              answer: quiz.answer,
+              correct: quiz.correct, // isCorrect → correct로 변경
+              gainExp: quiz.gainExp,
+              correctOption: quiz.dailyQuizDto?.correctOption
+            });
+          });
+        }
+        setDailyQuizzes(result.data);
       } else {
         throw new Error(result.message || '오늘의 퀴즈를 가져오는데 실패했습니다.');
       }
@@ -125,68 +129,65 @@ export default function TodayQuizPage() {
     }
   };
 
+  // 퀴즈 제출 (서버 API에 맞게 수정)
+  const submitQuiz = async (quizId: number, selectedOption: 'OPTION1' | 'OPTION2' | 'OPTION3') => {
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${API_BASE_URL}/api/quiz/daily/submit/${quizId}?selectedOption=${selectedOption}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('퀴즈 제출에 실패했습니다.');
+      }
+
+      const result = await response.json();
+      console.log(`퀴즈 ${quizId} 제출 응답:`, result);
+      if (result.code === 200) {
+        console.log(`퀴즈 ${quizId} 제출 결과:`, {
+          quizId: result.data?.quizId,
+          selectedOption: result.data?.selectedOption,
+          correctOption: result.data?.correctOption,
+          correct: result.data?.correct, // isCorrect → correct로 변경
+          gainExp: result.data?.gainExp
+        });
+        // 제출 완료 후 퀴즈 상태를 다시 조회
+        if (todayNews?.id) {
+          await fetchDailyQuizzes(todayNews.id);
+        }
+        return result.data;
+      } else {
+        throw new Error(result.message || '퀴즈 제출에 실패했습니다.');
+      }
+    } catch (err) {
+      console.error('퀴즈 제출 오류:', err);
+      throw err;
+    }
+  };
+
   // 모든 퀴즈 제출
   const submitAllQuizzes = async () => {
-    if (!quizData || quizData.isCompleted || !('quizzes' in quizData)) {
-      return;
-    }
-
-    if (Object.keys(answers).length !== (quizData?.quizzes?.length || 0)) {
+    if (Object.keys(answers).length !== dailyQuizzes.length) {
       alert('모든 문제를 풀어주세요.');
       return;
     }
 
-    // 이미 제출 중인 경우 중복 제출 방지
     if (submitting) {
       return;
     }
 
     setSubmitting(true);
     try {
-      const results: { [quizId: number]: DailyQuizAnswerDto } = {};
-      
       // 각 퀴즈를 순차적으로 제출
-      for (const quiz of quizData?.quizzes || []) {
-        const selectedOption = answers[quiz.id];
+      for (const quiz of dailyQuizzes) {
+        const selectedOption = answers[quiz.dailyQuizDto.id];
         if (!selectedOption) continue;
 
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-        const response = await fetch(`${API_BASE_URL}/api/quiz/daily/submit/${quiz.id}?selectedOption=${selectedOption}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          // 에러 응답 내용 확인
-          const errorText = await response.text();
-          console.error(`퀴즈 ${quiz.id} 제출 실패:`, response.status, errorText);
-          
-          if (response.status === 400) {
-            // 400 에러는 이미 제출된 퀴즈
-            console.warn(`퀴즈 ${quiz.id}는 이미 제출되었습니다.`);
-            // 이미 푼 퀴즈라면 퀴즈 상태를 다시 조회하여 결과 화면 표시
-            if (todayNews?.id) {
-              await fetchDailyQuizzes(todayNews.id);
-            }
-            return;
-          }
-          throw new Error(`퀴즈 ${quiz.id} 제출에 실패했습니다. (${response.status})`);
-        }
-
-        const result = await response.json();
-        if (result.code === 200) {
-          results[quiz.id] = result.data;
-        } else {
-          throw new Error(result.message || `퀴즈 ${quiz.id} 제출에 실패했습니다.`);
-        }
-      }
-
-      // 제출 완료 후 퀴즈 상태를 다시 조회하여 결과 화면 표시
-      if (todayNews?.id) {
-        await fetchDailyQuizzes(todayNews.id);
+        await submitQuiz(quiz.dailyQuizDto.id, selectedOption);
       }
     } catch (err) {
       console.error('퀴즈 제출 오류:', err);
@@ -217,18 +218,9 @@ export default function TodayQuizPage() {
       }
     };
 
-    // 인증 상태가 확인된 후에만 데이터 로드
-    if (isAuthenticated !== undefined) {
-      if (!isAuthenticated) {
-        alert('로그인이 필요합니다.');
-        router.push('/login');
-        return;
-      }
-      loadData();
-    }
-  }, [isAuthenticated, router]);
-
-  // 퀴즈 완료 여부 확인 (제출 버튼을 통해 완료되므로 이 useEffect는 제거)
+    // 페이지 로드 시 바로 데이터 가져오기 (서버에서 인증/인가 처리)
+    loadData();
+  }, []);
 
   // 옵션 텍스트 가져오기
   const getOptionText = (quiz: DailyQuizDto, option: 'OPTION1' | 'OPTION2' | 'OPTION3') => {
@@ -248,6 +240,16 @@ export default function TodayQuizPage() {
       case 'OPTION3': return 'C';
       default: return '';
     }
+  };
+
+  // 이미 푼 퀴즈인지 확인
+  const isQuizSolved = (quiz: DailyQuizWithHistoryDto) => {
+    return quiz.answer !== null;
+  };
+
+  // 모든 퀴즈를 푼 상태인지 확인
+  const isAllQuizzesSolved = () => {
+    return dailyQuizzes.every(quiz => isQuizSolved(quiz));
   };
 
   // 로딩 상태
@@ -292,73 +294,69 @@ export default function TodayQuizPage() {
     </div>
   );
 
-  // 퀴즈 완료 후 보여줄 UI (서버에서 완료된 데이터를 받아옴)
-  if (quizData && 'isCompleted' in quizData && quizData.isCompleted) {
+  // 모든 퀴즈를 푼 상태인 경우 결과 화면 표시
+  if (isAllQuizzesSolved()) {
     return (
       <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-8 px-4">
         <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-8 mb-10">
           {NewsInfoCard}
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] text-center flex items-center justify-center gap-2 mb-6">
-            오늘의 퀴즈
-            <span className="bg-[#e6f1fb] text-[#2b6cb0] rounded-full px-3 py-1 text-sm font-semibold ml-2">완료</span>
-          </h1>
-          {quizData.quizResults.map((result, idx) => {
+                     <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] text-center mb-6">
+             오늘의 퀴즈
+           </h1>
+          {dailyQuizzes.map((quizData, idx) => {
+            const quiz = quizData.dailyQuizDto;
+            const userAnswer = quizData.answer as 'OPTION1' | 'OPTION2' | 'OPTION3';
+            const isCorrect = quizData.correct;
+            
             return (
-              <div key={result.quizId} className="mb-4 w-full pb-4 border-b border-[#e6eaf3] bg-[#f7fafd] rounded-xl p-4">
+              <div key={quiz.id} className="mb-4 w-full pb-4 border-b border-[#e6eaf3] bg-[#f7fafd] rounded-xl p-4">
                 <div className="font-bold text-lg mb-4 flex items-center justify-center gap-2">
                   <span className="bg-[#2b6cb0] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-2">
                     {idx + 1}
                   </span>
-                  {result.question}
+                  {quiz.question}
                 </div>
                 <div className="grid grid-cols-1 gap-3">
                   {(['OPTION1', 'OPTION2', 'OPTION3'] as const).map((option) => {
-                    const isUser = result.selectedOption === option;
-                    const isCorrect = result.correctOption === option;
-                    const optionText = getOptionText({
-                      id: result.quizId,
-                      question: result.question,
-                      option1: '', // 서버에서 받은 결과에는 옵션 텍스트가 없으므로 임시 처리
-                      option2: '',
-                      option3: '',
-                      correctOption: result.correctOption
-                    }, option);
+                    const isUser = userAnswer === option;
+                    const isCorrectOption = quiz.correctOption === option;
+                    const optionText = getOptionText(quiz, option);
                     const optionLabel = getOptionLabel(option);
                     
                     return (
                       <div
                         key={option}
                         className={`p-4 rounded-lg border-2 transition-all ${
-                          isUser && !result.isCorrect 
+                          isUser && !isCorrect 
                             ? "border-red-300 bg-red-50" 
-                            : isCorrect 
+                            : isCorrectOption 
                             ? "border-green-300 bg-green-50" 
                             : "border-gray-200 bg-white"
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                            isUser && !result.isCorrect 
+                            isUser && !isCorrect 
                               ? "bg-red-500 text-white" 
-                              : isCorrect 
+                              : isCorrectOption 
                               ? "bg-green-500 text-white" 
                               : "bg-gray-200 text-gray-600"
                           }`}>
                             {optionLabel}
                           </div>
                           <span className={`font-medium ${
-                            isUser && !result.isCorrect 
+                            isUser && !isCorrect 
                               ? "text-red-700" 
-                              : isCorrect 
+                              : isCorrectOption 
                               ? "text-green-700" 
                               : "text-gray-700"
                           }`}>
-                            {optionText || `옵션 ${optionLabel}`}
+                            {optionText}
                           </span>
-                          {isUser && !result.isCorrect && (
+                          {isUser && !isCorrect && (
                             <span className="ml-auto text-red-500 font-bold">✗</span>
                           )}
-                          {isCorrect && (
+                          {isCorrectOption && (
                             <span className="ml-auto text-green-500 font-bold">✓</span>
                           )}
                         </div>
@@ -366,35 +364,50 @@ export default function TodayQuizPage() {
                     );
                   })}
                 </div>
+                <div className="mt-3 text-center">
+                  <span className={`text-sm font-semibold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                    {isCorrect ? `정답!` : '오답'}
+                  </span>
+                </div>
               </div>
             );
           })}
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-[#f7fafd] rounded-xl p-4 flex flex-col items-center shadow">
-              <div className="text-xs text-gray-500 mb-1">총 정답</div>
-              <div className="text-xl font-bold text-[#2b6cb0]">{quizData?.quizResults?.length || 0}개 중 {quizData?.totalCorrect || 0}개</div>
+                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <div className="bg-[#f7fafd] rounded-xl p-4 flex flex-col items-center shadow">
+               <div className="text-xs text-gray-500 mb-1">총 정답</div>
+               <div className="text-xl font-bold text-[#2b6cb0]">
+                 {dailyQuizzes.length}개 중 {dailyQuizzes.filter(q => q.correct).length}개
+               </div>
+             </div>
+             <div className="bg-[#e6f1fb] rounded-xl p-4 flex flex-col items-center shadow">
+               <div className="text-xs text-gray-500 mb-1">오늘의 퀴즈 경험치</div>
+               <div className="text-xl font-bold text-[#43e6b5]">
+                 +{dailyQuizzes.reduce((sum, q) => sum + q.gainExp, 0)}점
+               </div>
+             </div>
+           </div>
+                       <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => {
+                  router.push('/');
+                  window.scrollTo(0, 0);
+                }}
+                className="px-6 py-3 bg-[#2b6cb0] text-white rounded-lg hover:bg-[#1e40af] transition-colors font-semibold"
+              >
+                메인페이지로 이동
+              </button>
             </div>
-            <div className="bg-[#e6f1fb] rounded-xl p-4 flex flex-col items-center shadow">
-              <div className="text-xs text-gray-500 mb-1">오늘의 퀴즈 경험치</div>
-              <div className="text-xl font-bold text-[#43e6b5]">+{quizData?.totalExp || 0}점</div>
-            </div>
-            <div className="bg-[#f7fafd] rounded-xl p-4 flex flex-col items-center shadow">
-              <div className="text-xs text-gray-500 mb-1">퀴즈 완료</div>
-              <div className="text-xl font-bold text-[#7f9cf5]">성공!</div>
-            </div>
-          </div>
         </div>
       </div>
     );
   }
 
-  // quizData가 null이거나 올바른 형태가 아닌 경우 처리
-  if (!quizData || !('quizzes' in quizData) || !('isCompleted' in quizData)) {
-    console.log('quizData 상태:', quizData);
+  // 퀴즈 데이터가 없는 경우 처리
+  if (!dailyQuizzes || dailyQuizzes.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
         <div className="text-center">
-          <div className="text-gray-600 mb-4">퀴즈 데이터를 불러올 수 없습니다.</div>
+          <div className="text-gray-600 mb-4">오늘의 퀴즈가 없습니다.</div>
           <button 
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-[#2b6cb0] text-white rounded-lg hover:bg-[#1e40af] transition-colors"
@@ -416,13 +429,13 @@ export default function TodayQuizPage() {
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm text-gray-600">진행 상황</span>
             <span className="text-sm font-semibold text-[#2b6cb0]">
-              {Object.keys(answers).length} / {quizData?.quizzes.length || 0}
+              {Object.keys(answers).length} / {dailyQuizzes.length}
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
               className="bg-[#2b6cb0] h-2 rounded-full transition-all duration-300"
-              style={{ width: `${quizData?.quizzes.length ? (Object.keys(answers).length / quizData.quizzes.length) * 100 : 0}%` }}
+              style={{ width: `${dailyQuizzes.length ? (Object.keys(answers).length / dailyQuizzes.length) * 100 : 0}%` }}
             ></div>
           </div>
         </div>
@@ -430,78 +443,152 @@ export default function TodayQuizPage() {
         <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] mb-3 text-center">오늘의 퀴즈</h1>
         
         <div className="w-full flex flex-col items-center">
-          {quizData?.quizzes?.map((quiz, idx) => {
+          {dailyQuizzes.map((quizData, idx) => {
+            const quiz = quizData.dailyQuizDto;
+            const isSolved = isQuizSolved(quizData);
             const isAnswered = answers[quiz.id];
             
+            // 이미 푼 퀴즈인 경우 결과 표시
+            if (isSolved) {
+              const userAnswer = quizData.answer as 'OPTION1' | 'OPTION2' | 'OPTION3';
+              const isCorrect = quizData.correct;
+              
+              return (
+                <div key={quiz.id} className="mb-8 w-full">
+                  <div className="font-bold text-lg mb-4 flex items-center gap-2">
+                    <span className="bg-[#2b6cb0] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                      {idx + 1}
+                    </span>
+                    {quiz.question}
+                    <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">완료</span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {(['OPTION1', 'OPTION2', 'OPTION3'] as const).map((option) => {
+                      const isUser = userAnswer === option;
+                      const isCorrectOption = quiz.correctOption === option;
+                      const optionText = getOptionText(quiz, option);
+                      const optionLabel = getOptionLabel(option);
+                      
+                      return (
+                        <div
+                          key={option}
+                          className={`p-4 rounded-lg border-2 transition-all ${
+                            isUser && !isCorrect 
+                              ? "border-red-300 bg-red-50" 
+                              : isCorrectOption 
+                              ? "border-green-300 bg-green-50" 
+                              : "border-gray-200 bg-white"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                              isUser && !isCorrect 
+                                ? "bg-red-500 text-white" 
+                                : isCorrectOption 
+                                ? "bg-green-500 text-white" 
+                                : "bg-gray-200 text-gray-600"
+                            }`}>
+                              {optionLabel}
+                            </div>
+                            <span className={`font-medium ${
+                              isUser && !isCorrect 
+                                ? "text-red-700" 
+                                : isCorrectOption 
+                                ? "text-green-700" 
+                                : "text-gray-700"
+                            }`}>
+                              {optionText}
+                            </span>
+                            {isUser && !isCorrect && (
+                              <span className="ml-auto text-red-500 font-bold">✗</span>
+                            )}
+                            {isCorrectOption && (
+                              <span className="ml-auto text-green-500 font-bold">✓</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 text-center">
+                    <span className={`text-sm font-semibold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                      {isCorrect ? `정답!` : '오답'}
+                    </span>
+                  </div>
+                </div>
+              );
+            }
+            
+            // 아직 안 푼 퀴즈인 경우 선택 가능한 UI 표시
             return (
               <div key={quiz.id} className="mb-8 w-full">
-              <div className="font-bold text-lg mb-4 flex items-center gap-2">
-                <span className="bg-[#2b6cb0] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
-                  {idx + 1}
-                </span>
-                {quiz.question}
-              </div>
-              <div className="grid grid-cols-1 gap-3">
+                <div className="font-bold text-lg mb-4 flex items-center gap-2">
+                  <span className="bg-[#2b6cb0] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                    {idx + 1}
+                  </span>
+                  {quiz.question}
+                </div>
+                <div className="grid grid-cols-1 gap-3">
                   {(['OPTION1', 'OPTION2', 'OPTION3'] as const).map((option) => {
                     const isSelected = answers[quiz.id] === option;
                     const optionText = getOptionText(quiz, option);
                     const optionLabel = getOptionLabel(option);
                   
-                  return (
-                    <button
+                    return (
+                      <button
                         key={option}
                         onClick={() => {
                           setAnswers(prev => ({ ...prev, [quiz.id]: option }));
                         }}
                         disabled={false}
                         className={`p-4 rounded-lg border-2 transition-all text-left hover:shadow-md hover:border-gray-300 ${
-                        isSelected 
-                          ? "border-[#2b6cb0] bg-[#e6f1fb]" 
+                          isSelected 
+                            ? "border-[#2b6cb0] bg-[#e6f1fb]" 
                             : "border-gray-200 bg-white"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                          isSelected 
-                            ? "bg-[#2b6cb0] text-white" 
-                            : "bg-gray-200 text-gray-600"
-                        }`}>
-                          {optionLabel}
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                            isSelected 
+                              ? "bg-[#2b6cb0] text-white" 
+                              : "bg-gray-200 text-gray-600"
+                          }`}>
+                            {optionLabel}
+                          </div>
+                          <span className={`font-medium ${
+                            isSelected 
+                              ? "text-[#2b6cb0]" 
+                              : "text-gray-700"
+                          }`}>
+                            {optionText}
+                          </span>
                         </div>
-                        <span className={`font-medium ${
-                          isSelected 
-                            ? "text-[#2b6cb0]" 
-                            : "text-gray-700"
-                        }`}>
-                          {optionText}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
             );
           })}
         </div>
         
         {/* 제출 버튼 */}
-          <button
-            className={`w-full py-4 rounded-xl font-bold text-lg shadow transition-all ${
-            Object.keys(answers).length === (quizData?.quizzes.length || 0) && !submitting
-                ? "bg-[#2b6cb0] text-white hover:bg-[#1e40af]"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-            }`}
+        <button
+          className={`w-full py-4 rounded-xl font-bold text-lg shadow transition-all ${
+            Object.keys(answers).length === dailyQuizzes.filter(q => !isQuizSolved(q)).length && !submitting
+              ? "bg-[#2b6cb0] text-white hover:bg-[#1e40af]"
+              : "bg-gray-300 text-gray-500 cursor-not-allowed"
+          }`}
           onClick={submitAllQuizzes}
-          disabled={Object.keys(answers).length !== (quizData?.quizzes.length || 0) || submitting}
+          disabled={Object.keys(answers).length !== dailyQuizzes.filter(q => !isQuizSolved(q)).length || submitting}
         >
           {submitting 
             ? "제출 중..." 
-            : Object.keys(answers).length === (quizData?.quizzes.length || 0)
+            : Object.keys(answers).length === dailyQuizzes.filter(q => !isQuizSolved(q)).length
               ? "퀴즈 제출하기" 
               : "모든 문제를 풀어주세요"
           }
-          </button>
+        </button>
       </div>
     </div>
   );
