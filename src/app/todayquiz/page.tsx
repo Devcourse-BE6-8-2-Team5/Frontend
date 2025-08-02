@@ -301,6 +301,7 @@ export default function TodayQuizPage() {
         <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-8 mb-10">
           {NewsInfoCard}
 <<<<<<< HEAD
+<<<<<<< HEAD
                      <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] text-center mb-6">
              오늘의 퀴즈
            </h1>
@@ -310,6 +311,11 @@ export default function TodayQuizPage() {
             <span className="bg-[#e6f1fb] text-[#2b6cb0] rounded-full px-3 py-1 text-sm font-semibold ml-2">완료</span>
           </h1>
 >>>>>>> 5197ae5 (feat: 오늘의 퀴즈 서버 연동 완료)
+=======
+                     <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] text-center mb-6">
+             오늘의 퀴즈
+           </h1>
+>>>>>>> 3d7364c (오늘의 뉴스,퀴즈 ui 수정)
           {dailyQuizzes.map((quizData, idx) => {
             const quiz = quizData.dailyQuizDto;
             const userAnswer = quizData.answer as 'OPTION1' | 'OPTION2' | 'OPTION3';
@@ -374,16 +380,23 @@ export default function TodayQuizPage() {
                 <div className="mt-3 text-center">
                   <span className={`text-sm font-semibold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
 <<<<<<< HEAD
+<<<<<<< HEAD
                     {isCorrect ? `정답!` : '오답'}
 =======
                     {isCorrect ? `정답! (+${quizData.gainExp}EXP)` : '오답'}
 >>>>>>> 5197ae5 (feat: 오늘의 퀴즈 서버 연동 완료)
+=======
+                    {isCorrect ? `정답!` : '오답'}
+>>>>>>> 3d7364c (오늘의 뉴스,퀴즈 ui 수정)
                   </span>
                 </div>
               </div>
             );
           })}
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 3d7364c (오늘의 뉴스,퀴즈 ui 수정)
                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
              <div className="bg-[#f7fafd] rounded-xl p-4 flex flex-col items-center shadow">
                <div className="text-xs text-gray-500 mb-1">총 정답</div>
@@ -408,6 +421,7 @@ export default function TodayQuizPage() {
               >
                 메인페이지로 이동
               </button>
+<<<<<<< HEAD
             </div>
 =======
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -429,6 +443,9 @@ export default function TodayQuizPage() {
             </div>
           </div>
 >>>>>>> 5197ae5 (feat: 오늘의 퀴즈 서버 연동 완료)
+=======
+            </div>
+>>>>>>> 3d7364c (오늘의 뉴스,퀴즈 ui 수정)
         </div>
       </div>
     );
@@ -545,10 +562,14 @@ export default function TodayQuizPage() {
                   <div className="mt-3 text-center">
                     <span className={`text-sm font-semibold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
 <<<<<<< HEAD
+<<<<<<< HEAD
                       {isCorrect ? `정답!` : '오답'}
 =======
                       {isCorrect ? `정답! (+${quizData.gainExp}EXP)` : '오답'}
 >>>>>>> 5197ae5 (feat: 오늘의 퀴즈 서버 연동 완료)
+=======
+                      {isCorrect ? `정답!` : '오답'}
+>>>>>>> 3d7364c (오늘의 뉴스,퀴즈 ui 수정)
                     </span>
                   </div>
                 </div>
