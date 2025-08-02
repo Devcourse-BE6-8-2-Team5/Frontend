@@ -92,7 +92,7 @@ export default function TodayNews() {
         <div className="bg-white mb-6 shadow-2xl rounded-2xl">
           <div className="bg-blue-100 text-[#2b6cb0] p-4 text-center rounded-t-2xl">
             <h1 className="text-4xl font-black tracking-wider">오늘의 뉴스</h1>
-            <p className="text-sm mt-1">뉴스를 읽고 오늘의 퀴즈에 도전하세요!</p>
+            <p className="text-sm mt-2">뉴스를 읽고 오늘의 퀴즈에 도전하세요!</p>
           </div>
           
           {/* 신문 메타 정보 */}
@@ -104,10 +104,6 @@ export default function TodayNews() {
                 day: 'numeric',
                 weekday: 'long'
               })}</span>
-              <span className="mx-4">|</span>
-              <Link href="/todayquiz" className="text-[#2b6cb0] hover:text-[#1e40af] font-semibold text-sm">
-                오늘의 퀴즈
-              </Link>
             </div>
           </div>
         </div>
@@ -116,20 +112,6 @@ export default function TodayNews() {
         <div className="bg-white shadow-2xl rounded-2xl">
           {/* 헤드라인 */}
           <div className="p-6">
-            <div className="text-center mb-4">
-              <span className="inline-block bg-gray-100 text-gray-700 px-3 py-2 rounded-full text-xs font-medium">
-                {(() => {
-                  const categoryMap: { [key: string]: string } = {
-                    'POLITICS': '정치',
-                    'ECONOMY': '경제', 
-                    'IT': 'IT',
-                    'CULTURE': '문화',
-                    'SOCIETY': '사회'
-                  };
-                  return categoryMap[news.newsCategory] || news.newsCategory;
-                })()}
-              </span>
-            </div>
             <h1 className="text-4xl font-black text-center leading-tight mb-4">
               {news.title}
             </h1>

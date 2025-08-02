@@ -300,10 +300,9 @@ export default function TodayQuizPage() {
       <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-8 px-4">
         <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-8 mb-10">
           {NewsInfoCard}
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] text-center flex items-center justify-center gap-2 mb-6">
-            오늘의 퀴즈
-            <span className="bg-[#e6f1fb] text-[#2b6cb0] rounded-full px-3 py-1 text-sm font-semibold ml-2">완료</span>
-          </h1>
+                     <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] text-center mb-6">
+             오늘의 퀴즈
+           </h1>
           {dailyQuizzes.map((quizData, idx) => {
             const quiz = quizData.dailyQuizDto;
             const userAnswer = quizData.answer as 'OPTION1' | 'OPTION2' | 'OPTION3';
@@ -367,30 +366,37 @@ export default function TodayQuizPage() {
                 </div>
                 <div className="mt-3 text-center">
                   <span className={`text-sm font-semibold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
-                    {isCorrect ? `정답! (+${quizData.gainExp}EXP)` : '오답'}
+                    {isCorrect ? `정답!` : '오답'}
                   </span>
                 </div>
               </div>
             );
           })}
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-[#f7fafd] rounded-xl p-4 flex flex-col items-center shadow">
-              <div className="text-xs text-gray-500 mb-1">총 정답</div>
-              <div className="text-xl font-bold text-[#2b6cb0]">
-                {dailyQuizzes.length}개 중 {dailyQuizzes.filter(q => q.correct).length}개
-              </div>
+                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <div className="bg-[#f7fafd] rounded-xl p-4 flex flex-col items-center shadow">
+               <div className="text-xs text-gray-500 mb-1">총 정답</div>
+               <div className="text-xl font-bold text-[#2b6cb0]">
+                 {dailyQuizzes.length}개 중 {dailyQuizzes.filter(q => q.correct).length}개
+               </div>
+             </div>
+             <div className="bg-[#e6f1fb] rounded-xl p-4 flex flex-col items-center shadow">
+               <div className="text-xs text-gray-500 mb-1">오늘의 퀴즈 경험치</div>
+               <div className="text-xl font-bold text-[#43e6b5]">
+                 +{dailyQuizzes.reduce((sum, q) => sum + q.gainExp, 0)}점
+               </div>
+             </div>
+           </div>
+                       <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => {
+                  router.push('/');
+                  window.scrollTo(0, 0);
+                }}
+                className="px-6 py-3 bg-[#2b6cb0] text-white rounded-lg hover:bg-[#1e40af] transition-colors font-semibold"
+              >
+                메인페이지로 이동
+              </button>
             </div>
-            <div className="bg-[#e6f1fb] rounded-xl p-4 flex flex-col items-center shadow">
-              <div className="text-xs text-gray-500 mb-1">오늘의 퀴즈 경험치</div>
-              <div className="text-xl font-bold text-[#43e6b5]">
-                +{dailyQuizzes.reduce((sum, q) => sum + q.gainExp, 0)}점
-              </div>
-            </div>
-            <div className="bg-[#f7fafd] rounded-xl p-4 flex flex-col items-center shadow">
-              <div className="text-xs text-gray-500 mb-1">퀴즈 완료</div>
-              <div className="text-xl font-bold text-[#7f9cf5]">성공!</div>
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -506,7 +512,7 @@ export default function TodayQuizPage() {
                   </div>
                   <div className="mt-3 text-center">
                     <span className={`text-sm font-semibold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
-                      {isCorrect ? `정답! (+${quizData.gainExp}EXP)` : '오답'}
+                      {isCorrect ? `정답!` : '오답'}
                     </span>
                   </div>
                 </div>
