@@ -1,69 +1,47 @@
 "use client";
-
-import Link from "next/link";
-import Image from "next/image";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  
-  // 실시간 유효성 검사를 위한 상태
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  
-  // 유효성 검사 에러 메시지
-  const [emailError, setEmailError] = useState("");
+  const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState('');
 
-  // 이메일 유효성 검사
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (email && !emailRegex.test(email)) {
-      setEmailError("올바른 이메일 형식을 입력해주세요");
+    if (!emailRegex.test(email)) {
+      setEmailError('올바른 이메일 형식을 입력해주세요.');
     } else {
-      setEmailError("");
+      setEmailError('');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    setError("");
-
-    // 최종 유효성 검사
-    if (emailError) {
-      setError("입력 정보를 올바르게 입력해주세요.");
-      setIsLoading(false);
-      return;
-    }
+    setError('');
 
     try {
-      const response = await fetch("/api/members/login", {
-        method: "POST",
+      const response = await fetch('/api/members/login', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        credentials: "include",
-        body: JSON.stringify({
-          email: email.trim(),
-          password: password.trim(),
-        }),
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "로그인에 실패했습니다.");
+      if (response.ok) {
+        router.push('/');
+      } else {
+        const data = await response.json();
+        throw new Error(data.message || '로그인에 실패했습니다.');
       }
-
-      // 로그인 성공 - AuthContext에 사용자 정보 저장
-      login(data.data.member);
-      alert(data.message);
-      router.replace("/");
     } catch (error) {
       setError(error instanceof Error ? error.message : "로그인에 실패했습니다.");
     } finally {

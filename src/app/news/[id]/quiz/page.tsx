@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { FaRegNewspaper } from "react-icons/fa";
-import { useParams } from "next/navigation";
-import { getCharacterInfo, CharacterInfo } from "@/utils/characterUtils";
+import { useParams, useRouter } from "next/navigation";
 
-interface DetailQuiz {
+// 서버에서 받는 퀴즈 정보
+interface DetailQuizResDto {
   id: number;
   question: string;
   option1: string;
@@ -13,437 +13,793 @@ interface DetailQuiz {
   correctOption: "OPTION1" | "OPTION2" | "OPTION3";
 }
 
-interface QuizResult {
-  details: { idx: number; is_correct: boolean; user_answer: string; correct_option: string }[];
-  correct_count: number;
-  exp_gained: number;
-  total_exp: number;
+// 서버에서 받는 퀴즈 + 히스토리 정보
+interface DetailQuizWithHistory {
+  detailQuizResDto: DetailQuizResDto;
+  answer: string | null; // null이면 안 푼 퀴즈, null이 아니면 이미 푼 퀴즈
+  correct: boolean; // 서버에서 correct로 오므로 맞춤
+  gainExp: number;
+  quizType: string;
 }
 
-interface QuizHistory {
-  id: number;
+// 퀴즈 제출 후 서버에서 받는 응답
+interface DetailQuizAnswerDto {
   quizId: number;
-  answer: string;
+  question: string;
+  correctOption: "OPTION1" | "OPTION2" | "OPTION3";
+  selectedOption: "OPTION1" | "OPTION2" | "OPTION3";
   isCorrect: boolean;
   gainExp: number;
-  createdDate: string;
+  quizType: string;
 }
 
 export default function NewsQuizPage() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   const params = useParams();
+  const router = useRouter();
   const newsId = params.id;
-  const [quizzes, setQuizzes] = useState<DetailQuiz[]>([]);
+  const [quizzes, setQuizzes] = useState<DetailQuizWithHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [answers, setAnswers] = useState<{ [idx: number]: string }>({});
-  const [result, setResult] = useState<QuizResult | null>(null);
-  const [showResult, setShowResult] = useState(false);
-  const [quizCompleted, setQuizCompleted] = useState(false);
-  const [alreadySolved, setAlreadySolved] = useState(false);
-  const [solvedHistory, setSolvedHistory] = useState<QuizHistory[]>([]);
-  const [characterInfo, setCharacterInfo] = useState<CharacterInfo | null>(null);
-  const [showLevelUp, setShowLevelUp] = useState(false);
-  const [previousLevel, setPreviousLevel] = useState(1);
+  const [answers, setAnswers] = useState<{ [quizId: number]: 'OPTION1' | 'OPTION2' | 'OPTION3' }>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
 
   // 뉴스 제목도 API로 받아오고 싶으면 추가 fetch 필요
   const [newsTitle, setNewsTitle] = useState<string>("");
 
+  // 스크롤 위치 감지
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // 상세 퀴즈 조회 (뉴스 ID로 조회)
   useEffect(() => {
     if (!newsId) return;
-    const fetchQuizzes = async () => {
+    const fetchDetailQuizzes = async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/quiz/detail/news/${newsId}`);
-        if (!res.ok) throw new Error("퀴즈를 불러오지 못했습니다.");
-        const data = await res.json();
-        if (data.code !== 200 || !data.data || data.data.length === 0) {
-          throw new Error(data.message || "퀴즈가 없습니다.");
+        const res = await fetch(`/api/quiz/detail/news/${newsId}`, {
+          credentials: 'include',
+        });
+        
+        if (res.status === 401) {
+          setIsUnauthorized(true);
+          setLoading(false);
+          return;
         }
-        setQuizzes(data.data);
-      } catch (e: any) {
-        setError(e.message || "알 수 없는 오류");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchQuizzes();
-  }, [newsId]);
 
-  // 사용자가 이미 퀴즈를 풀었는지 확인
-  useEffect(() => {
-    if (!newsId || quizzes.length === 0) return;
-    const checkAlreadySolved = async () => {
-      try {
-        // 각 퀴즈에 대해 사용자가 풀었는지 확인
-        let solvedCount = 0;
-        const solvedHistories: QuizHistory[] = [];
+        if (!res.ok) {
+          throw new Error('상세 퀴즈를 가져오는데 실패했습니다.');
+        }
 
-        for (let i = 0; i < quizzes.length; i++) {
-          const quiz = quizzes[i];
+        const result = await res.json();
+        console.log('퀴즈 API 응답:', result);
+        if (result.code === 200) {
+          console.log('퀴즈 데이터:', result.data);
+          
+          // 서버에서 DetailQuizResDto 배열을 받았으므로, 각 퀴즈의 히스토리를 개별 조회
+          const quizList = result.data;
+          const quizzesWithHistory: DetailQuizWithHistory[] = [];
+          
+          for (const quiz of quizList) {
           try {
             const historyRes = await fetch(`/api/quiz/detail/${quiz.id}`, {
               credentials: 'include',
             });
+              
             if (historyRes.ok) {
-              const historyData = await historyRes.json();
-              if (historyData.code === 200 && historyData.data && historyData.data.answer !== null) {
-                solvedCount++;
-                // 퀴즈 히스토리 정보 저장
-                solvedHistories.push({
-                  id: historyData.data.detailQuizResDto?.id || i,
-                  quizId: quiz.id,
-                  answer: historyData.data.answer || "",
-                  isCorrect: historyData.data.isCorrect || false,
-                  gainExp: historyData.data.gainExp || 0,
-                  createdDate: new Date().toISOString()
-                });
-              }
+                 const historyResult = await historyRes.json();
+                 console.log(`퀴즈 ${quiz.id} 히스토리 응답:`, historyResult);
+                 if (historyResult.code === 200) {
+                   console.log(`퀴즈 ${quiz.id} 히스토리 데이터:`, historyResult.data);
+                   quizzesWithHistory.push(historyResult.data);
+                 } else {
+                   console.log(`퀴즈 ${quiz.id} 히스토리 없음, 기본값 설정`);
+                   // 히스토리가 없으면 기본값으로 설정
+                   quizzesWithHistory.push({
+                     detailQuizResDto: quiz,
+                     answer: null,
+                     correct: false,
+                     gainExp: 0,
+                     quizType: 'DETAIL'
+                   });
+                 }
+               } else {
+                 console.log(`퀴즈 ${quiz.id} 히스토리 조회 실패, 기본값 설정`);
+                 // 히스토리 조회 실패 시에도 기본값으로 설정
+                 quizzesWithHistory.push({
+                   detailQuizResDto: quiz,
+                   answer: null,
+                   correct: false,
+                   gainExp: 0,
+                   quizType: 'DETAIL'
+                 });
+               }
+            } catch (error) {
+               console.error(`퀴즈 ${quiz.id} 히스토리 조회 중 오류:`, error);
+               // 오류 발생 시에도 기본값으로 설정
+               quizzesWithHistory.push({
+                 detailQuizResDto: quiz,
+                 answer: null,
+                 correct: false,
+                 gainExp: 0,
+                 quizType: 'DETAIL'
+               });
             }
-          } catch (error) {
-            console.error(`퀴즈 ${i + 1} 히스토리 확인 오류:`, error);
           }
-        }
-
-        // 모든 퀴즈를 풀었으면 완료로 간주
-        if (solvedCount === quizzes.length && quizzes.length > 0) {
-          setAlreadySolved(true);
-          setSolvedHistory(solvedHistories);
-
-          // 이미 푼 퀴즈 결과를 result로 설정
-          const solvedDetails = solvedHistories.map((history: QuizHistory, idx: number) => {
-            const quiz = quizzes.find(q => q.id === history.quizId);
-            return {
-              idx: idx,
-              is_correct: history.isCorrect,
-              user_answer: history.answer,
-              correct_option: quiz?.correctOption || "OPTION1",
-              gainExp: history.gainExp
-            };
-          });
-
-          const totalCorrectCount = solvedHistories.filter((h: QuizHistory) => h.isCorrect).length;
-          const totalExpGained = solvedHistories.reduce((sum: number, h: QuizHistory) => sum + h.gainExp, 0);
-
-          setResult({
-            details: solvedDetails,
-            correct_count: totalCorrectCount,
-            exp_gained: totalExpGained,
-            total_exp: totalExpGained
-          });
-        }
-      } catch (error) {
-        console.error('퀴즈 풀이 여부 확인 오류:', error);
+          
+          setQuizzes(quizzesWithHistory);
+        } else {
+           throw new Error(result.message || '퀴즈 데이터를 가져오는데 실패했습니다.');
+         }
+       } catch (e: any) {
+         console.error('퀴즈 조회 오류:', e);
+         setError(e.message || '알 수 없는 오류가 발생했습니다.');
+      } finally {
+        setLoading(false);
       }
     };
-    checkAlreadySolved();
-  }, [newsId, quizzes]);
+     
+    fetchDetailQuizzes();
+   }, [newsId]);
 
-  // 뉴스 제목도 불러오기 (선택)
+  // 뉴스 제목 가져오기
   useEffect(() => {
     if (!newsId) return;
     const fetchNewsTitle = async () => {
       try {
         const res = await fetch(`/api/news/${newsId}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.code === 200 && data.data && data.data.title) {
-          setNewsTitle(data.data.title);
+        if (res.ok) {
+          const result = await res.json();
+          if (result.code === 200 && result.data) {
+            setNewsTitle(result.data.title);
+          }
         }
-      } catch {}
+      } catch (error) {
+        console.error('뉴스 제목 조회 오류:', error);
+      }
     };
+    
     fetchNewsTitle();
   }, [newsId]);
 
-  const handleSubmit = async () => {
-    try {
-      // 모든 퀴즈에 답변이 있는지 확인
-      if (Object.keys(answers).length !== quizzes.length) {
-        alert('모든 퀴즈에 답변을 선택해주세요.');
-        return;
-      }
-
-      // 현재 사용자 정보 가져오기
-      const userRes = await fetch('/api/members/info', {
+  const submitQuiz = async (quizId: number, selectedOption: 'OPTION1' | 'OPTION2' | 'OPTION3'): Promise<DetailQuizAnswerDto> => {
+    const res = await fetch(`/api/quiz/detail/submit/${quizId}?selectedOption=${selectedOption}`, {
+        method: 'POST',
         credentials: 'include',
       });
-      if (userRes.ok) {
-        const userData = await userRes.json();
-        const currentCharacter = getCharacterInfo(userData.data.exp, userData.data.level);
-        setPreviousLevel(currentCharacter.level);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('퀴즈 제출 오류:', res.status, errorText);
+      throw new Error(`퀴즈 제출 실패: ${res.status} ${errorText}`);
+    }
+
+    const result = await res.json();
+    console.log('퀴즈 제출 응답:', result);
+    
+    if (result.code !== 200) {
+        throw new Error(result.message || '퀴즈 제출에 실패했습니다.');
+    }
+
+    return result.data;
+  };
+
+  const submitAllQuizzes = async () => {
+    if (Object.keys(answers).length === 0) {
+      alert('답을 선택해주세요.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // 아직 푸지 않은 퀴즈만 제출 (더 엄격한 필터링)
+      const unsolvedQuizzes = quizzes.filter(q => !isQuizSolved(q));
+      
+      if (unsolvedQuizzes.length === 0) {
+        alert('이미 모든 퀴즈를 완료했습니다.');
+        return;
+      }
+      
+      for (const quizData of unsolvedQuizzes) {
+        const quizId = quizData.detailQuizResDto.id;
+        const selectedOption = answers[quizId];
+        
+        // 추가 검증: 이미 푼 퀴즈는 건너뛰기
+        if (selectedOption && !isQuizSolved(quizData)) {
+          try {
+            await submitQuiz(quizId, selectedOption);
+          } catch (error) {
+            console.error(`퀴즈 ${quizId} 제출 실패:`, error);
+            // 개별 퀴즈 실패 시에도 계속 진행
+          }
+        }
       }
 
-      // 각 퀴즈를 개별적으로 제출
-      const results = [];
-      let totalCorrectCount = 0;
-      let totalExpGained = 0;
-
-      for (let i = 0; i < quizzes.length; i++) {
-        const quiz = quizzes[i];
-        const selectedOption = answers[i];
-
-        if (!selectedOption) continue;
-
-        try {
-          const response = await fetch(`/api/quiz/detail/submit/${quiz.id}?selectedOption=${selectedOption}`, {
-            method: 'POST',
+      // 퀴즈 제출 후 데이터 다시 로드
+      if (newsId) {
+        const refreshRes = await fetch(`/api/quiz/detail/news/${newsId}`, {
+          credentials: 'include',
+        });
+        if (refreshRes.ok) {
+          const refreshResult = await refreshRes.json();
+          if (refreshResult.code === 200) {
+            // 서버에서 DetailQuizResDto 배열을 받았으므로, 각 퀴즈의 히스토리를 개별 조회
+            const quizList = refreshResult.data;
+            const quizzesWithHistory: DetailQuizWithHistory[] = [];
+            
+            for (const quiz of quizList) {
+              try {
+                const historyRes = await fetch(`/api/quiz/detail/${quiz.id}`, {
             credentials: 'include',
           });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || '퀴즈 제출에 실패했습니다.');
-          }
-
-          const data = await response.json();
-
-          if (data.code !== 200) {
-            throw new Error(data.message || '퀴즈 제출에 실패했습니다.');
-          }
-
-          const result = data.data;
-          console.log(`퀴즈 ${i + 1} 결과:`, result); // 디버깅용 로그
-          results.push({
-            idx: i,
-            is_correct: result.correct, // isCorrect → correct로 수정
-            user_answer: result.selectedOption,
-            correct_option: result.correctOption,
-            gainExp: result.gainExp
-          });
-
-          if (result.correct === true) { // isCorrect → correct로 수정
-            totalCorrectCount++;
-            console.log(`정답! 현재 정답 개수: ${totalCorrectCount}`); // 디버깅용 로그
-          }
-          totalExpGained += result.gainExp;
-
+                if (historyRes.ok) {
+                  const historyResult = await historyRes.json();
+                  if (historyResult.code === 200) {
+                    quizzesWithHistory.push(historyResult.data);
+                  } else {
+                    // 히스토리가 없으면 기본값으로 설정
+                    quizzesWithHistory.push({
+                      detailQuizResDto: quiz,
+                      answer: null,
+                      correct: false,
+                      gainExp: 0,
+                      quizType: 'DETAIL'
+                    });
+                  }
+                } else {
+                  // 히스토리 조회 실패 시에도 기본값으로 설정
+                  quizzesWithHistory.push({
+                    detailQuizResDto: quiz,
+                    answer: null,
+                    correct: false,
+                    gainExp: 0,
+                    quizType: 'DETAIL'
+                  });
+                }
         } catch (error) {
-          console.error(`퀴즈 ${i + 1} 제출 실패:`, error);
-          throw error;
+                console.error(`퀴즈 ${quiz.id} 히스토리 조회 중 오류:`, error);
+                // 오류 발생 시에도 기본값으로 설정
+                quizzesWithHistory.push({
+                  detailQuizResDto: quiz,
+                  answer: null,
+                  correct: false,
+                  gainExp: 0,
+                  quizType: 'DETAIL'
+                });
+              }
+            }
+            
+            setQuizzes(quizzesWithHistory);
+            setAnswers({}); // 답변 상태 초기화
+          }
         }
       }
-
-      // 업데이트된 사용자 정보 가져오기
-      const updatedUserRes = await fetch('/api/members/info', {
-        credentials: 'include',
-      });
-      if (updatedUserRes.ok) {
-        const updatedUserData = await updatedUserRes.json();
-        const newCharacter = getCharacterInfo(updatedUserData.data.exp, updatedUserData.data.level);
-        setCharacterInfo(newCharacter);
-
-        // 레벨업 체크
-        if (newCharacter.level > previousLevel) {
-          setShowLevelUp(true);
-        }
-      }
-
-      console.log('최종 결과:', { results, totalCorrectCount, totalExpGained }); // 디버깅용 로그
-      setResult({
-        details: results,
-        correct_count: totalCorrectCount,
-        exp_gained: totalExpGained,
-        total_exp: totalExpGained
-      });
-      setShowResult(true);
-    } catch (error: any) {
-      console.error('퀴즈 제출 오류:', error);
-      alert(error.message || '퀴즈 제출에 실패했습니다. 다시 시도해주세요.');
+    } catch (error) {
+      console.error('퀴즈 제출 중 오류:', error);
+      alert('퀴즈 제출 중 오류가 발생했습니다.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleCloseResult = () => {
-    setShowResult(false);
-    setQuizCompleted(true);
-
-    // 퀴즈 완료 후 마이페이지 정보 새로고침을 위한 이벤트 발생
-    window.dispatchEvent(new CustomEvent('quizCompleted'));
+  const getOptionText = (quiz: DetailQuizResDto, option: 'OPTION1' | 'OPTION2' | 'OPTION3') => {
+    switch (option) {
+      case 'OPTION1': return quiz.option1;
+      case 'OPTION2': return quiz.option2;
+      case 'OPTION3': return quiz.option3;
+      default: return '';
+    }
   };
 
-  const handleCloseLevelUp = () => {
-    setShowLevelUp(false);
+  const getOptionLabel = (option: 'OPTION1' | 'OPTION2' | 'OPTION3') => {
+    switch (option) {
+      case 'OPTION1': return 'A';
+      case 'OPTION2': return 'B';
+      case 'OPTION3': return 'C';
+      default: return '';
+    }
   };
 
-  // 뉴스 정보 카드
-  const NewsInfoCard = (
-      <div className="w-full flex flex-col items-center bg-[#e6f1fb] rounded-xl p-5 mb-0 shadow-sm border border-[#d2eaff]">
-        <div className="text-xs text-gray-500 text-center mb-2">상세 퀴즈는 해당 뉴스의 내용을 바탕으로 출제되었습니다.</div>
-        <div className="flex items-center gap-2 mb-2">
-          <FaRegNewspaper className="text-[#2b6cb0] text-xl" />
-          <span className="text-[#2b6cb0] font-bold text-base">뉴스 상세</span>
-        </div>
-        <div className="text-lg sm:text-xl font-semibold text-[#222] text-center mb-1">{newsTitle}</div>
-      </div>
-  );
+  // 이미 푼 퀴즈인지 확인
+  const isQuizSolved = (quiz: DetailQuizWithHistory) => {
+    return quiz.answer !== null;
+  };
 
+  // 모든 퀴즈를 푼 상태인지 확인
+  const isAllQuizzesSolved = () => {
+    return quizzes.filter(quiz => quiz.detailQuizResDto).every(quiz => isQuizSolved(quiz));
+  };
+
+  // 스크롤에 따른 배경 투명도 계산
+  const backgroundOpacity = Math.max(0.1, 1 - (scrollY / 1000));
+
+  // 로딩 상태
   if (loading) {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
-          <div className="text-lg text-gray-500">로딩 중...</div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50/50 via-indigo-50/50 to-blue-100/50">
+        <div className="text-2xl font-bold text-gray-900 mb-4">상세 퀴즈를 불러오는 중...</div>
+        <div className="w-8 h-8 border-4 border-gray-900 border-t-transparent rounded-full animate-spin"></div>
         </div>
     );
   }
 
+  // 로그인이 필요한 경우
+  if (isUnauthorized) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-b from-blue-50/50 via-indigo-50/50 to-blue-100/50 px-4 pt-60">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
+          <div className="text-center">
+            <div className="flex justify-center mb-4">
+              <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div className="text-2xl font-bold text-blue-600 mb-4">로그인이 필요합니다</div>
+            <div className="text-gray-600 mb-6">로그인하고 상세퀴즈에 도전해보세요!</div>
+            <div className="space-y-3">
+              <button
+                onClick={() => router.push(`/login?redirect=${encodeURIComponent(`/news/${newsId}/quiz`)}`)}
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors"
+              >
+                로그인하기
+              </button>
+              <button
+                onClick={() => router.push('/')}
+                className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                메인페이지로 돌아가기
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 에러 상태
   if (error) {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
-          <div className="text-red-500 text-lg">{error}</div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50/50 via-indigo-50/50 to-blue-100/50 px-4">
+        <div className="text-center">
+          <div className="text-2xl font-bold text-red-600 mb-4">오류가 발생했습니다</div>
+          <div className="text-gray-600 mb-6">{error}</div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full hover:from-blue-700 hover:to-indigo-700 transition-colors"
+          >
+            다시 시도
+          </button>
+        </div>
         </div>
     );
   }
 
-  if (quizCompleted && result) {
+  // 모든 퀴즈를 푼 상태인 경우 결과 화면 표시
+  if (isAllQuizzesSolved()) {
     return (
-        <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-8 px-4">
-          <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-8 mb-10">
-            {NewsInfoCard}
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] text-center flex items-center justify-center gap-2 mb-6">
+      <div className="font-sans min-h-screen relative">
+        {/* 전체 배경 */}
+        <div className="fixed inset-0 bg-gradient-to-br from-blue-50/50 via-indigo-50/50 to-blue-100/50 transition-opacity duration-300"></div>
+        
+        {/* 배경 패턴 */}
+        <div className="fixed inset-0 opacity-10 transition-opacity duration-300">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
+          <div className="absolute top-40 right-10 w-72 h-72 bg-indigo-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
+          <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-4000"></div>
+        </div>
+
+        {/* 콘텐츠 */}
+        <div className="relative z-10">
+          {/* Hero Section - 상세 퀴즈 소개 */}
+          <section className="pt-12 pb-8">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center">
+                {/* 메인 헤드라인 */}
+                <div className="mb-8">
+                  <div className="inline-flex items-center justify-center w-20 h-20 mb-6">
+                    <svg className="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
               상세 퀴즈
-              <span className="bg-[#e6f1fb] text-[#2b6cb0] rounded-full px-3 py-1 text-sm font-semibold ml-2">완료</span>
             </h1>
-            {quizzes.map((quiz, idx) => {
-              const d = result.details[idx];
+                  <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                    뉴스 기사의 내용을 바탕으로 상세퀴즈를 출제합니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* 퀴즈 결과 섹션 */}
+          <section className="pb-20">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+                {/* 퀴즈 결과 */}
+                <div className="p-8">
+                  <div className="space-y-8">
+          {quizzes.map((quizData, idx) => {
+            const quiz = quizData.detailQuizResDto;
+            
+            // quiz가 undefined인 경우 건너뛰기
+            if (!quiz) {
+              return null;
+            }
+            
+                         const userAnswer = quizData.answer as 'OPTION1' | 'OPTION2' | 'OPTION3';
+             const isCorrect = quizData.correct;
+             
               return (
-                  <div key={idx} className="mb-4 w-full pb-4 border-b border-[#e6eaf3] bg-[#f7fafd] rounded-xl">
-                    <div className="font-bold text-lg mb-2 flex items-center justify-center gap-2">
-                      <span>{idx + 1}. {quiz.question}</span>
+                        <div key={quiz.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
+                          <div className="font-bold text-lg mb-4 flex items-center gap-2">
+                            <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                    {idx + 1}
+                  </span>
+                  {quiz.question}
                     </div>
-                    <div className="flex flex-col gap-2 items-center justify-center text-center">
-                      {["OPTION1", "OPTION2", "OPTION3"].map((opt) => {
-                        const isUser = d.user_answer === opt;
-                        const isCorrect = d.correct_option === opt;
+                <div className="grid grid-cols-1 gap-3">
+                  {(['OPTION1', 'OPTION2', 'OPTION3'] as const).map((option) => {
+                    const isUser = userAnswer === option;
+                    const isCorrectOption = quiz.correctOption === option;
+                    const optionText = getOptionText(quiz, option);
+                    const optionLabel = getOptionLabel(option);
+                    
                         return (
-                            <label
-                                key={opt}
-                                className={`flex items-center gap-2 rounded px-2 py-1
-                          ${isUser && !d.is_correct ? "text-red-600 font-bold" : ""}
-                          ${isCorrect ? "text-green-700 font-bold" : ""}
-                        `}
-                            >
-                              <input
-                                  type="radio"
-                                  name={`quiz_${idx}`}
-                                  value={opt}
-                                  checked={isUser}
-                                  disabled
-                              />
-                              <span>{quiz[opt.toLowerCase() as "option1" | "option2" | "option3"]}</span>
-                            </label>
+                      <div
+                        key={option}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          isUser && !isCorrect 
+                            ? "border-red-300 bg-red-50" 
+                            : isCorrectOption 
+                            ? "border-green-300 bg-green-50" 
+                            : "border-gray-200 bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                            isUser && !isCorrect 
+                              ? "bg-red-500 text-white" 
+                              : isCorrectOption 
+                              ? "bg-green-500 text-white" 
+                              : "bg-gray-200 text-gray-600"
+                          }`}>
+                            {optionLabel}
+                          </div>
+                          <span className={`font-medium ${
+                            isUser && !isCorrect 
+                              ? "text-red-700" 
+                              : isCorrectOption 
+                              ? "text-green-700" 
+                              : "text-gray-700"
+                          }`}>
+                            {optionText}
+                          </span>
+                          {isUser && !isCorrect && (
+                            <span className="ml-auto text-red-500 font-bold">✗</span>
+                          )}
+                          {isCorrectOption && (
+                            <span className="ml-auto text-green-500 font-bold">✓</span>
+                          )}
+                        </div>
+                      </div>
                         );
                       })}
+                    </div>
+                <div className="mt-3 text-center">
+                  <span className={`text-sm font-semibold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                    {isCorrect ? `정답!` : '오답'}
+                  </span>
                     </div>
                   </div>
               );
             })}
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-[#f7fafd] rounded-xl p-4 flex flex-col items-center shadow">
-                <div className="text-xs text-gray-500 mb-1">총 정답</div>
-                <div className="text-xl font-bold text-[#2b6cb0]">{quizzes.length}개 중 {result.correct_count}개</div>
+                  </div>
+
+                  {/* 결과 요약 */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 mt-8">
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+                      <div className="text-center">
+                        <div className="text-sm text-gray-500 mb-2">총 정답</div>
+                        <div className="text-2xl font-bold text-blue-600">
+                 {quizzes.length}개 중 {quizzes.filter(q => q.detailQuizResDto && q.correct).length}개
+               </div>
               </div>
-              <div className="bg-[#e6f1fb] rounded-xl p-4 flex flex-col items-center shadow">
-                <div className="text-xs text-gray-500 mb-1">상세 퀴즈 경험치</div>
-                <div className="text-xl font-bold text-[#43e6b5]">+{result.exp_gained}점</div>
-              </div>
-              <div className="bg-[#f7fafd] rounded-xl p-4 flex flex-col items-center shadow">
-                <div className="text-xs text-gray-500 mb-1">나의 누적 경험치</div>
-                <div className="text-xl font-bold text-[#7f9cf5]">{result.total_exp}점</div>
+                    </div>
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+                      <div className="text-center">
+                        <div className="text-sm text-gray-500 mb-2">상세 퀴즈 경험치</div>
+                        <div className="text-2xl font-bold text-indigo-600">
+                +{quizzes.filter(q => q.detailQuizResDto).reduce((sum, q) => sum + (Number(q.gainExp) || 0), 0)}점
+                        </div>
               </div>
             </div>
+          </div>
+
+                  {/* 메인페이지 이동 버튼 */}
+                  <div className="text-center">
+            <button
+              onClick={() => {
+                router.push('/');
+                window.scrollTo(0, 0);
+              }}
+                      className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
+            >
+              메인페이지로 이동
+            </button>
+          </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
+  // 퀴즈 데이터가 없는 경우 처리
+  if (!quizzes || quizzes.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50/50 via-indigo-50/50 to-blue-100/50 px-4">
+        <div className="text-center">
+          <div className="text-2xl font-bold text-gray-600 mb-4">상세 퀴즈가 없습니다</div>
+          <div className="text-gray-500 mb-6">해당 뉴스에 대한 상세 퀴즈가 준비되지 않았습니다.</div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full hover:from-blue-700 hover:to-indigo-700 transition-colors"
+          >
+            다시 시도
+          </button>
           </div>
         </div>
     );
   }
 
   return (
-      <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-8 px-4">
-        <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center gap-8 mb-10">
-          {NewsInfoCard}
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] mb-3 text-center">상세 퀴즈</h1>
-          <div className="w-full flex flex-col items-center">
-            {quizzes.map((quiz, idx) => (
-                <div key={idx} className="mb-8 w-full flex flex-col items-center">
-                  <div className="font-semibold mb-2 text-center w-full">{idx + 1}. {quiz.question}</div>
-                  <div className="flex flex-col gap-2 w-full items-center">
-                    {["OPTION1", "OPTION2", "OPTION3"].map((opt) => (
-                        <label key={opt} className="flex items-center gap-2 cursor-pointer w-full justify-center">
-                          <input
-                              type="radio"
-                              name={`quiz_${idx}`}
-                              value={opt}
-                              checked={answers[idx] === opt}
-                              onChange={() => setAnswers((prev) => ({ ...prev, [idx]: opt }))}
-                              disabled={!!result}
-                          />
-                          <span>{quiz[opt.toLowerCase() as "option1" | "option2" | "option3"]}</span>
-                        </label>
-                    ))}
+    <div className="font-sans min-h-screen relative">
+      {/* 전체 배경 */}
+      <div 
+        className="fixed inset-0 bg-gradient-to-br from-blue-50/50 via-indigo-50/50 to-blue-100/50 transition-opacity duration-300"
+        style={{ opacity: backgroundOpacity }}
+      ></div>
+      
+      {/* 배경 패턴 */}
+      <div 
+        className="fixed inset-0 opacity-10 transition-opacity duration-300"
+        style={{ opacity: 0.1 * backgroundOpacity }}
+      >
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
+        <div className="absolute top-40 right-10 w-72 h-72 bg-indigo-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
+        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-4000"></div>
+      </div>
+
+      {/* 콘텐츠 */}
+      <div className="relative z-10">
+        {/* Hero Section - 상세 퀴즈 소개 */}
+        <section className="pt-12 pb-8">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              {/* 메인 헤드라인 */}
+              <div className="mb-8">
+                <div className="inline-flex items-center justify-center w-20 h-20 mb-6">
+                  <svg className="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+                  상세 퀴즈
+                </h1>
+                <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                  해당 뉴스 기사의 내용을 바탕으로 상세퀴즈를 출제합니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 퀴즈 섹션 */}
+        <section className="pb-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+              {/* 퀴즈 섹션 */}
+              <div className="p-8">
+                {/* 진행 상황 표시 - 아직 퀴즈를 제출하지 않은 경우에만 표시 */}
+                {!isAllQuizzesSolved() && (
+                  <div className="w-full mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm text-gray-600">진행 상황</span>
+                      <span className="text-sm font-semibold text-blue-600">
+              {Object.keys(answers).length} / {quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length}
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length ? (Object.keys(answers).length / quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length) * 100 : 0}%` }}
+            ></div>
+          </div>
+        </div>
+                )}
+        
+                <div className="space-y-8">
+          {quizzes.map((quizData, idx) => {
+            const quiz = quizData.detailQuizResDto;
+            
+            // quiz가 undefined인 경우 건너뛰기
+            if (!quiz) {
+              return null;
+            }
+            
+            const isSolved = isQuizSolved(quizData);
+            const isAnswered = answers[quiz.id];
+            
+                         // 이미 푼 퀴즈인 경우 결과 표시
+             if (isSolved) {
+               const userAnswer = quizData.answer as 'OPTION1' | 'OPTION2' | 'OPTION3';
+               const isCorrect = quizData.correct;
+              
+              return (
+                        <div key={quiz.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
+                  <div className="font-bold text-lg mb-4 flex items-center gap-2">
+                            <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                      {idx + 1}
+                    </span>
+                    {quiz.question}
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {(['OPTION1', 'OPTION2', 'OPTION3'] as const).map((option) => {
+                      const isUser = userAnswer === option;
+                      const isCorrectOption = quiz.correctOption === option;
+                      const optionText = getOptionText(quiz, option);
+                      const optionLabel = getOptionLabel(option);
+                      
+                      return (
+                        <div
+                          key={option}
+                          className={`p-4 rounded-lg border-2 transition-all ${
+                            isUser && !isCorrect 
+                              ? "border-red-300 bg-red-50" 
+                              : isCorrectOption 
+                              ? "border-green-300 bg-green-50" 
+                              : "border-gray-200 bg-white"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                              isUser && !isCorrect 
+                                ? "bg-red-500 text-white" 
+                                : isCorrectOption 
+                                ? "bg-green-500 text-white" 
+                                : "bg-gray-200 text-gray-600"
+                            }`}>
+                              {optionLabel}
+                            </div>
+                            <span className={`font-medium ${
+                              isUser && !isCorrect 
+                                ? "text-red-700" 
+                                : isCorrectOption 
+                                ? "text-green-700" 
+                                : "text-gray-700"
+                            }`}>
+                              {optionText}
+                            </span>
+                            {isUser && !isCorrect && (
+                              <span className="ml-auto text-red-500 font-bold">✗</span>
+                            )}
+                            {isCorrectOption && (
+                              <span className="ml-auto text-green-500 font-bold">✓</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 text-center">
+                    <span className={`text-sm font-semibold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                      {isCorrect ? `정답!` : '오답'}
+                    </span>
                   </div>
                 </div>
-            ))}
-          </div>
-          {!result && (
-              <button
-                  className="w-full py-3 rounded-full bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold text-lg shadow hover:opacity-90 transition mt-8"
-                  onClick={handleSubmit}
-                  disabled={Object.keys(answers).length !== quizzes.length}
-              >
-                퀴즈 제출
-              </button>
-          )}
-        </div>
-
-        {/* 결과 팝업 */}
-        {showResult && result && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
-              <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md flex flex-col gap-4">
-                <h2 className="text-xl font-bold text-[#2b6cb0] mb-2">퀴즈 결과</h2>
-                {result.details.map((d, idx) => (
-                    <div key={d.idx} className="flex flex-col mb-2">
-                <span>
-                  {idx + 1}번 문제: {d.is_correct ? "정답" : "오답"}
-                  <span className="ml-2 text-sm text-gray-500">
-                    (내 답: {quizzes[idx][d.user_answer.toLowerCase() as "option1" | "option2" | "option3"] || "-"}
-                    { !d.is_correct && (
-                        <> / 정답: {quizzes[idx][d.correct_option.toLowerCase() as "option1" | "option2" | "option3"]}</>
-                    )}
-                    )
+              );
+            }
+            
+            // 아직 안 푼 퀴즈인 경우 선택 가능한 UI 표시
+            return (
+                      <div key={quiz.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
+                <div className="font-bold text-lg mb-4 flex items-center gap-2">
+                          <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                    {idx + 1}
                   </span>
+                  {quiz.question}
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  {(['OPTION1', 'OPTION2', 'OPTION3'] as const).map((option) => {
+                    const isSelected = answers[quiz.id] === option;
+                    const optionText = getOptionText(quiz, option);
+                    const optionLabel = getOptionLabel(option);
+                  
+                    return (
+                      <button
+                        key={option}
+                        onClick={() => {
+                          setAnswers(prev => ({ ...prev, [quiz.id]: option }));
+                        }}
+                        disabled={false}
+                                className={`p-4 rounded-lg border-2 transition-all text-left hover:shadow-md hover:border-blue-300 ${
+                          isSelected 
+                                    ? "border-blue-600 bg-blue-100" 
+                            : "border-gray-200 bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                            isSelected 
+                                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white" 
+                              : "bg-gray-200 text-gray-600"
+                          }`}>
+                            {optionLabel}
+                          </div>
+                          <span className={`font-medium ${
+                            isSelected 
+                                      ? "text-blue-700" 
+                              : "text-gray-700"
+                          }`}>
+                            {optionText}
                 </span>
                     </div>
-                ))}
-                <div className="mt-2 font-semibold">
-                  총 정답: <span className="text-[#2b6cb0]">{quizzes.length}개 중 {result.correct_count}개</span><br />
-                  상세 퀴즈로 얻은 경험치: <span className="text-[#43e6b5]">{result.exp_gained}점</span><br />
-                  누적 경험치: <span className="text-[#7f9cf5]">{result.total_exp}점</span>
+                      </button>
+                    );
+                  })}
                 </div>
+              </div>
+            );
+          })}
+            </div>
+        
+        {/* 제출 버튼 */}
+                <div className="mt-8 text-center">
                 <button
-                    className="mt-4 w-full py-2 rounded-full bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold shadow hover:opacity-90 transition"
-                    onClick={handleCloseResult}
-                >
-                  확인
+                    className={`px-8 py-4 rounded-full font-bold text-lg shadow transition-all ${
+                      Object.keys(answers).length === quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length && 
+                      quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length > 0 && 
+                      !submitting
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transform hover:scale-105"
+              : "bg-gray-300 text-gray-500 cursor-not-allowed"
+          }`}
+          onClick={submitAllQuizzes}
+                    disabled={
+                      Object.keys(answers).length !== quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length || 
+                      quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length === 0 || 
+                      submitting
+                    }
+        >
+          {submitting 
+            ? "제출 중..." 
+                      : quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length === 0
+                        ? "모든 퀴즈 완료"
+            : Object.keys(answers).length === quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length
+              ? "퀴즈 제출하기" 
+              : "모든 문제를 풀어주세요"
+          }
                 </button>
+                </div>
               </div>
             </div>
-        )}
-
-        {/* 레벨업 팝업 */}
-        {showLevelUp && characterInfo && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
-              <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md flex flex-col gap-4">
-                <h2 className="text-xl font-bold text-[#2b6cb0] mb-2">레벨 업!</h2>
-                <p className="text-lg text-gray-700 mb-4">
-                  레벨 {characterInfo.level}로 업그레이드되었습니다!
-                  새로운 기술을 활용하여 더 많은 지식을 습득해보세요.
-                </p>
-                <button
-                    className="mt-4 w-full py-2 rounded-full bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold shadow hover:opacity-90 transition"
-                    onClick={handleCloseLevelUp}
-                >
-                  확인
-                </button>
+          </div>
+        </section>
               </div>
-            </div>
-        )}
       </div>
   );
 } 

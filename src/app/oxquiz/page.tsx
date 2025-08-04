@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 // NewsCategory enum (서버와 일치)
 enum NewsCategory {
@@ -51,6 +52,18 @@ export default function OxQuizMainPage() {
   const [quizzes, setQuizzes] = useState<FactQuiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [scrollY, setScrollY] = useState(0);
+  const router = useRouter();
+
+  // 스크롤 위치 감지
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // 퀴즈 데이터 가져오기
   const fetchQuizzes = async (category?: NewsCategory) => {
@@ -115,6 +128,11 @@ export default function OxQuizMainPage() {
     }
   };
 
+  // 페이지 로드 시 스크롤을 맨 위로 올리기
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // 페이지 로드 시 전체 퀴즈 데이터 가져오기
   useEffect(() => {
     fetchQuizzes();
@@ -130,44 +148,24 @@ export default function OxQuizMainPage() {
     }
   }, [selectedCategory]);
 
+  // 스크롤에 따른 배경 투명도 계산
+  const backgroundOpacity = Math.max(0.1, 1 - (scrollY / 1000));
+
+  if (loading) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-8 mb-10">
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] mb-0 text-center">OX 퀴즈</h1>
-        <p className="text-gray-600 text-center mb-8 max-w-2xl mx-auto -mt-2">
-          진짜 뉴스와 AI가 생성한 가짜 뉴스 중 진짜를 찾아보세요!<br />
-        </p>
-        
-        {/* 카테고리 필터 */}
-        <div className="flex flex-row gap-4 w-full justify-center mt-2 mb-6">
-          {categoryOptions.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`px-6 py-2 rounded-full border text-base font-semibold shadow transition-colors
-                ${selectedCategory === cat.id
-                  ? 'bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white border-transparent'
-                  : 'bg-white/80 text-[#383838] border-[#e0e7ef] hover:bg-[#e0f7fa] hover:text-[#2b6cb0]'}`}
-            >
-              {cat.name}
-            </button>
-          ))}
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-indigo-50/50 via-purple-50/50 to-indigo-100/50">
+        <div className="text-2xl font-bold text-gray-900 mb-4">OX 퀴즈를 불러오는 중...</div>
+        <div className="w-8 h-8 border-4 border-gray-900 border-t-transparent rounded-full animate-spin"></div>
         </div>
+    );
+  }
 
-        {/* 로딩 상태 */}
-        {loading && (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2b6cb0]"></div>
-            <span className="ml-2 text-gray-600">퀴즈를 불러오는 중...</span>
-          </div>
-        )}
-
-        {/* 에러 상태 */}
-        {error && (
-          <div className="text-center py-8">
-            <div className="text-red-500 mb-2">오류가 발생했습니다</div>
-            <div className="text-gray-600 text-sm">{error}</div>
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-indigo-50/50 via-purple-50/50 to-indigo-100/50 px-4">
+        <div className="text-center">
+          <div className="text-2xl font-bold text-red-600 mb-4">오류가 발생했습니다</div>
+          <div className="text-gray-600 mb-6">{error}</div>
             <button 
               onClick={() => {
                 if (selectedCategory === 'all') {
@@ -177,15 +175,79 @@ export default function OxQuizMainPage() {
                   fetchQuizzes(category);
                 }
               }}
-              className="mt-4 px-4 py-2 bg-[#2b6cb0] text-white rounded-lg hover:bg-[#1e40af] transition-colors"
+            className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full hover:from-indigo-700 hover:to-purple-700 transition-colors"
             >
               다시 시도
             </button>
           </div>
-        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="font-sans min-h-screen relative">
+      {/* 전체 배경 */}
+      <div 
+        className="fixed inset-0 bg-gradient-to-br from-indigo-50/50 via-purple-50/50 to-indigo-100/50 transition-opacity duration-300"
+        style={{ opacity: backgroundOpacity }}
+      ></div>
+      
+      {/* 배경 패턴 */}
+      <div 
+        className="fixed inset-0 opacity-10 transition-opacity duration-300"
+        style={{ opacity: 0.1 * backgroundOpacity }}
+      >
+        <div className="absolute top-20 left-10 w-72 h-72 bg-indigo-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
+        <div className="absolute top-40 right-10 w-72 h-72 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
+        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-indigo-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-4000"></div>
+      </div>
+
+      {/* 콘텐츠 */}
+      <div className="relative z-10">
+        {/* Hero Section - OX 퀴즈 소개 */}
+        <section className="pt-12 pb-8">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              {/* 메인 헤드라인 */}
+              <div className="mb-8">
+                <div className="inline-flex items-center justify-center w-20 h-20 mb-6">
+                  <svg className="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-4">
+                  OX 퀴즈
+                </h1>
+                <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                  AI를 통해 가짜뉴스를 생성하여, AI가 생성한 가짜뉴스와 진짜뉴스 중 정답을 고르는 퀴즈입니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* OX 퀴즈 섹션 */}
+        <section className="pb-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+              <div className="p-8">
+                {/* 카테고리 필터 */}
+                <div className="flex flex-wrap gap-4 justify-center mb-8">
+                  {categoryOptions.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`px-6 py-3 rounded-full border text-base font-semibold shadow transition-all duration-300 transform hover:scale-105
+                        ${selectedCategory === cat.id
+                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-transparent'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
 
         {/* 퀴즈 목록 */}
-        {!loading && !error && (
           <div className="w-full">
             {quizzes.length === 0 && (
               <div className="text-center py-12">
@@ -196,18 +258,18 @@ export default function OxQuizMainPage() {
               </div>
             )}
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {quizzes.map(quiz => (
-                <Link 
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {quizzes.map((quiz, index) => (
+                <button
                   key={quiz.id}
-                  href={`/oxquiz/detail/${quiz.id}`}
-                  className="group relative bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer transform hover:scale-[1.02] border-2 border-[#e0e7ef] hover:border-[#7f9cf5]"
+                  onClick={() => router.push(`/oxquiz/detail/${quiz.id}`, { scroll: false })}
+                        className="group relative bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer transform hover:scale-[1.02] border-2 border-indigo-200 hover:border-indigo-400 text-left h-80"
                 >
                   
                   {/* 퀴즈 순서 */}
                   <div className="absolute top-4 left-4 z-10">
-                    <span className="text-sm font-bold text-[#7f9cf5] bg-[#e6f1fb] px-2 py-1 rounded">
-                      퀴즈 {quizzes.indexOf(quiz) + 1}
+                          <span className="text-sm font-bold text-indigo-600 bg-white px-3 py-1 rounded-full shadow-sm">
+                            퀴즈 {index + 1}
                     </span>
                   </div>
                   
@@ -215,22 +277,24 @@ export default function OxQuizMainPage() {
                   <div className="p-6 pt-16 flex flex-col h-full">
                     
                     {/* 기사 제목 - 중앙 정렬 */}
-                    <div className="text-center mb-6">
+                          <div className="text-center mb-4">
                       <div className="inline-block">
-                        <h3 className="text-lg font-bold text-[#2b6cb0] group-hover:text-[#5a7bd8] transition-colors leading-tight px-6 py-3 bg-white border-2 border-[#7f9cf5] rounded-xl shadow-sm">
+                              <h3 className="text-base font-bold text-gray-900 group-hover:text-indigo-700 transition-colors leading-tight px-4 py-2 bg-white border-2 border-indigo-200 rounded-xl shadow-sm line-clamp-2">
                           {quiz.realNewsTitle}
                         </h3>
                       </div>
                     </div>
                     
                     {/* 퀴즈 질문과 화살표 */}
-                    <div className="flex items-center justify-between mt-auto pt-6">
-                      <span className="text-xs text-white">아직 풀지 않음</span>
+                          <div className="flex items-center justify-between mt-auto pt-4">
+                            <span className={`text-xs ${localStorage.getItem(`oxquiz_completed_${quiz.id}`) ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}>
+                              {localStorage.getItem(`oxquiz_completed_${quiz.id}`) ? '퀴즈 완료' : '아직 풀지 않음'}
+                            </span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-700">
+                              <span className="text-sm font-semibold text-gray-700 line-clamp-1">
                           {quiz.question}
                         </span>
-                        <span className="text-[#7f9cf5] text-3xl font-black group-hover:text-[#5a7bd8] transition-colors -mt-2">
+                              <span className="text-indigo-600 text-2xl font-black group-hover:text-purple-600 transition-colors -mt-1">
                           →
                         </span>
                       </div>
@@ -238,13 +302,15 @@ export default function OxQuizMainPage() {
                   </div>
                   
                   {/* 호버 효과 */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-                </Link>
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
+                </button>
               ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        )}
-        </div>
+        </section>
       </div>
     </div>
   );
