@@ -46,9 +46,20 @@ export default function NewsQuizPage() {
   const [answers, setAnswers] = useState<{ [quizId: number]: 'OPTION1' | 'OPTION2' | 'OPTION3' }>({});
   const [submitting, setSubmitting] = useState(false);
   const [isUnauthorized, setIsUnauthorized] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
 
   // 뉴스 제목도 API로 받아오고 싶으면 추가 fetch 필요
   const [newsTitle, setNewsTitle] = useState<string>("");
+
+  // 스크롤 위치 감지
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // 상세 퀴즈 조회 (뉴스 ID로 조회)
   useEffect(() => {
@@ -105,7 +116,7 @@ export default function NewsQuizPage() {
                  }
                } else {
                  console.log(`퀴즈 ${quiz.id} 히스토리 조회 실패, 기본값 설정`);
-                 // 히스토리 조회 실패시 기본값으로 설정
+                 // 히스토리 조회 실패 시에도 기본값으로 설정
                  quizzesWithHistory.push({
                    detailQuizResDto: quiz,
                    answer: null,
@@ -115,8 +126,8 @@ export default function NewsQuizPage() {
                  });
                }
             } catch (error) {
-              console.error(`퀴즈 ${quiz.id} 히스토리 조회 실패:`, error);
-                             // 에러시 기본값으로 설정
+               console.error(`퀴즈 ${quiz.id} 히스토리 조회 중 오류:`, error);
+               // 오류 발생 시에도 기본값으로 설정
                quizzesWithHistory.push({
                  detailQuizResDto: quiz,
                  answer: null,
@@ -127,93 +138,95 @@ export default function NewsQuizPage() {
             }
           }
           
-          console.log('히스토리 포함 퀴즈 데이터:', quizzesWithHistory);
           setQuizzes(quizzesWithHistory);
         } else {
-          throw new Error(result.message || '상세 퀴즈를 가져오는데 실패했습니다.');
-        }
-      } catch (err) {
-        console.error('상세 퀴즈 조회 오류:', err);
-        setError(err instanceof Error ? err.message : '상세 퀴즈를 가져오는데 실패했습니다.');
+           throw new Error(result.message || '퀴즈 데이터를 가져오는데 실패했습니다.');
+         }
+       } catch (e: any) {
+         console.error('퀴즈 조회 오류:', e);
+         setError(e.message || '알 수 없는 오류가 발생했습니다.');
       } finally {
         setLoading(false);
       }
     };
+     
     fetchDetailQuizzes();
-  }, [newsId, router]);
+   }, [newsId]);
 
-  // 뉴스 제목도 불러오기
+  // 뉴스 제목 가져오기
   useEffect(() => {
     if (!newsId) return;
     const fetchNewsTitle = async () => {
       try {
         const res = await fetch(`/api/news/${newsId}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.code === 200 && data.data && data.data.title) {
-          setNewsTitle(data.data.title);
+        if (res.ok) {
+          const result = await res.json();
+          if (result.code === 200 && result.data) {
+            setNewsTitle(result.data.title);
+          }
         }
-      } catch {}
+      } catch (error) {
+        console.error('뉴스 제목 조회 오류:', error);
+      }
     };
+    
     fetchNewsTitle();
   }, [newsId]);
 
-  // 퀴즈 제출
   const submitQuiz = async (quizId: number, selectedOption: 'OPTION1' | 'OPTION2' | 'OPTION3'): Promise<DetailQuizAnswerDto> => {
-    try {
-      const response = await fetch(`/api/quiz/detail/submit/${quizId}?selectedOption=${selectedOption}`, {
+    const res = await fetch(`/api/quiz/detail/submit/${quizId}?selectedOption=${selectedOption}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         credentials: 'include',
       });
 
-      if (!response.ok) {
-        throw new Error('퀴즈 제출에 실패했습니다.');
-      }
-
-      const result = await response.json();
-      console.log(`퀴즈 ${quizId} 제출 응답:`, result);
-      if (result.code === 200) {
-        console.log(`퀴즈 ${quizId} 제출 결과:`, result.data);
-        return result.data;
-      } else {
-        throw new Error(result.message || '퀴즈 제출에 실패했습니다.');
-      }
-    } catch (err) {
-      console.error('퀴즈 제출 오류:', err);
-      throw err;
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('퀴즈 제출 오류:', res.status, errorText);
+      throw new Error(`퀴즈 제출 실패: ${res.status} ${errorText}`);
     }
+
+    const result = await res.json();
+    console.log('퀴즈 제출 응답:', result);
+    
+    if (result.code !== 200) {
+        throw new Error(result.message || '퀴즈 제출에 실패했습니다.');
+    }
+
+    return result.data;
   };
 
-  // 모든 퀴즈 제출
   const submitAllQuizzes = async () => {
-    const validQuizzes = quizzes.filter(q => q.detailQuizResDto);
-    const unsolvedQuizzes = validQuizzes.filter(q => !isQuizSolved(q));
-    
-    if (Object.keys(answers).length !== unsolvedQuizzes.length) {
-      alert('모든 문제를 풀어주세요.');
-      return;
-    }
-
-    if (submitting) {
+    if (Object.keys(answers).length === 0) {
+      alert('답을 선택해주세요.');
       return;
     }
 
     setSubmitting(true);
     try {
-      // 각 퀴즈를 순차적으로 제출
-      for (const quiz of validQuizzes) {
-        if (isQuizSolved(quiz)) continue; // 이미 푼 퀴즈는 건너뛰기
-        
-        const selectedOption = answers[quiz.detailQuizResDto!.id];
-        if (!selectedOption) continue;
-
-        await submitQuiz(quiz.detailQuizResDto!.id, selectedOption);
+      // 아직 푸지 않은 퀴즈만 제출 (더 엄격한 필터링)
+      const unsolvedQuizzes = quizzes.filter(q => !isQuizSolved(q));
+      
+      if (unsolvedQuizzes.length === 0) {
+        alert('이미 모든 퀴즈를 완료했습니다.');
+        return;
       }
       
-      // 제출 완료 후 퀴즈 상태를 다시 조회 (히스토리 포함)
+      for (const quizData of unsolvedQuizzes) {
+        const quizId = quizData.detailQuizResDto.id;
+        const selectedOption = answers[quizId];
+        
+        // 추가 검증: 이미 푼 퀴즈는 건너뛰기
+        if (selectedOption && !isQuizSolved(quizData)) {
+          try {
+            await submitQuiz(quizId, selectedOption);
+          } catch (error) {
+            console.error(`퀴즈 ${quizId} 제출 실패:`, error);
+            // 개별 퀴즈 실패 시에도 계속 진행
+          }
+        }
+      }
+
+      // 퀴즈 제출 후 데이터 다시 로드
       if (newsId) {
         const refreshRes = await fetch(`/api/quiz/detail/news/${newsId}`, {
           credentials: 'include',
@@ -246,7 +259,7 @@ export default function NewsQuizPage() {
                     });
                   }
                 } else {
-                  // 히스토리 조회 실패시 기본값으로 설정
+                  // 히스토리 조회 실패 시에도 기본값으로 설정
                   quizzesWithHistory.push({
                     detailQuizResDto: quiz,
                     answer: null,
@@ -256,8 +269,8 @@ export default function NewsQuizPage() {
                   });
                 }
         } catch (error) {
-                console.error(`퀴즈 ${quiz.id} 히스토리 조회 실패:`, error);
-                // 에러시 기본값으로 설정
+                console.error(`퀴즈 ${quiz.id} 히스토리 조회 중 오류:`, error);
+                // 오류 발생 시에도 기본값으로 설정
                 quizzesWithHistory.push({
                   detailQuizResDto: quiz,
                   answer: null,
@@ -269,18 +282,18 @@ export default function NewsQuizPage() {
             }
             
             setQuizzes(quizzesWithHistory);
+            setAnswers({}); // 답변 상태 초기화
           }
         }
       }
-    } catch (err) {
-      console.error('퀴즈 제출 오류:', err);
-      alert(err instanceof Error ? err.message : '퀴즈 제출에 실패했습니다.');
+    } catch (error) {
+      console.error('퀴즈 제출 중 오류:', error);
+      alert('퀴즈 제출 중 오류가 발생했습니다.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // 옵션 텍스트 가져오기
   const getOptionText = (quiz: DetailQuizResDto, option: 'OPTION1' | 'OPTION2' | 'OPTION3') => {
     switch (option) {
       case 'OPTION1': return quiz.option1;
@@ -290,7 +303,6 @@ export default function NewsQuizPage() {
     }
   };
 
-  // 옵션 라벨 가져오기
   const getOptionLabel = (option: 'OPTION1' | 'OPTION2' | 'OPTION3') => {
     switch (option) {
       case 'OPTION1': return 'A';
@@ -310,26 +322,15 @@ export default function NewsQuizPage() {
     return quizzes.filter(quiz => quiz.detailQuizResDto).every(quiz => isQuizSolved(quiz));
   };
 
-  // 뉴스 정보 카드
-  const NewsInfoCard = (
-      <div className="w-full flex flex-col items-center bg-[#e6f1fb] rounded-xl p-5 mb-0 shadow-sm border border-[#d2eaff]">
-        <div className="text-xs text-gray-500 text-center mb-2">상세 퀴즈는 해당 뉴스의 내용을 바탕으로 출제되었습니다.</div>
-        <div className="flex items-center gap-2 mb-2">
-          <FaRegNewspaper className="text-[#2b6cb0] text-xl" />
-          <span className="text-[#2b6cb0] font-bold text-base">뉴스 상세</span>
-        </div>
-        <div className="text-lg sm:text-xl font-semibold text-[#222] text-center mb-1">{newsTitle}</div>
-      </div>
-  );
+  // 스크롤에 따른 배경 투명도 계산
+  const backgroundOpacity = Math.max(0.1, 1 - (scrollY / 1000));
 
   // 로딩 상태
   if (loading) {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2b6cb0] mx-auto mb-4"></div>
-          <p className="text-gray-600">상세 퀴즈를 불러오는 중...</p>
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50/50 via-indigo-50/50 to-blue-100/50">
+        <div className="text-2xl font-bold text-gray-900 mb-4">상세 퀴즈를 불러오는 중...</div>
+        <div className="w-8 h-8 border-4 border-gray-900 border-t-transparent rounded-full animate-spin"></div>
         </div>
     );
   }
@@ -337,33 +338,23 @@ export default function NewsQuizPage() {
   // 로그인이 필요한 경우
   if (isUnauthorized) {
     return (
-      <div className="min-h-screen flex items-start justify-center pt-50 bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
-        <div className="max-w-md w-full mx-4">
-          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-            <div className="mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-[#2b6cb0] to-[#43e6b5] rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">로그인이 필요합니다</h2>
-              <p className="text-gray-600">로그인하고 상세퀴즈에 도전해보세요!</p>
-            </div>
-            
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50/50 via-indigo-50/50 to-blue-100/50 px-4">
+        <div className="text-center">
+          <div className="text-2xl font-bold text-red-600 mb-4">로그인이 필요합니다</div>
+          <div className="text-gray-600 mb-6">로그인하고 상세퀴즈에 도전해보세요!</div>
             <div className="space-y-3">
               <button
                 onClick={() => router.push(`/login?redirect=${encodeURIComponent(`/news/${newsId}/quiz`)}`)}
-                className="w-full py-3 bg-gradient-to-r from-[#2b6cb0] to-[#43e6b5] text-white font-semibold rounded-lg hover:shadow-lg transition-all duration-300 transform hover:scale-105"
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full hover:from-blue-700 hover:to-indigo-700 transition-colors"
               >
                 로그인하기
               </button>
               <button
                 onClick={() => router.push('/')}
-                className="w-full py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
+              className="px-6 py-3 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
               >
                 메인페이지로 돌아가기
               </button>
-            </div>
           </div>
         </div>
       </div>
@@ -373,13 +364,13 @@ export default function NewsQuizPage() {
   // 에러 상태
   if (error) {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50/50 via-indigo-50/50 to-blue-100/50 px-4">
         <div className="text-center">
-          <div className="text-red-500 mb-4">오류가 발생했습니다</div>
-          <div className="text-gray-600 text-sm mb-4">{error}</div>
+          <div className="text-2xl font-bold text-red-600 mb-4">오류가 발생했습니다</div>
+          <div className="text-gray-600 mb-6">{error}</div>
           <button 
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-[#2b6cb0] text-white rounded-lg hover:bg-[#1e40af] transition-colors"
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full hover:from-blue-700 hover:to-indigo-700 transition-colors"
           >
             다시 시도
           </button>
@@ -391,14 +382,48 @@ export default function NewsQuizPage() {
   // 모든 퀴즈를 푼 상태인 경우 결과 화면 표시
   if (isAllQuizzesSolved()) {
     return (
-        <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-8 px-4">
-          <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-8 mb-10">
-            {NewsInfoCard}
+      <div className="font-sans min-h-screen relative">
+        {/* 전체 배경 */}
+        <div className="fixed inset-0 bg-gradient-to-br from-blue-50/50 via-indigo-50/50 to-blue-100/50 transition-opacity duration-300"></div>
+        
+        {/* 배경 패턴 */}
+        <div className="fixed inset-0 opacity-10 transition-opacity duration-300">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
+          <div className="absolute top-40 right-10 w-72 h-72 bg-indigo-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
+          <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-4000"></div>
+        </div>
 
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] text-center mb-6">
+        {/* 콘텐츠 */}
+        <div className="relative z-10">
+          {/* Hero Section - 상세 퀴즈 소개 */}
+          <section className="pt-12 pb-8">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center">
+                {/* 메인 헤드라인 */}
+                <div className="mb-8">
+                  <div className="inline-flex items-center justify-center w-20 h-20 mb-6">
+                    <svg className="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
               상세 퀴즈
             </h1>
+                  <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                    뉴스 기사의 내용을 바탕으로 상세퀴즈를 출제합니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
 
+          {/* 퀴즈 결과 섹션 */}
+          <section className="pb-20">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+                {/* 퀴즈 결과 */}
+                <div className="p-8">
+                  <div className="space-y-8">
           {quizzes.map((quizData, idx) => {
             const quiz = quizData.detailQuizResDto;
             
@@ -411,9 +436,9 @@ export default function NewsQuizPage() {
              const isCorrect = quizData.correct;
              
               return (
-               <div key={quiz.id} className="mb-4 w-full pb-4 border-b border-[#e6eaf3] bg-[#f7fafd] rounded-xl p-4">
-                <div className="font-bold text-lg mb-4 flex items-center justify-center gap-2">
-                  <span className="bg-[#2b6cb0] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-2">
+                        <div key={quiz.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
+                          <div className="font-bold text-lg mb-4 flex items-center gap-2">
+                            <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
                     {idx + 1}
                   </span>
                   {quiz.question}
@@ -474,33 +499,44 @@ export default function NewsQuizPage() {
                   </div>
               );
             })}
+                  </div>
 
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-[#f7fafd] rounded-xl p-4 flex flex-col items-center shadow">
-                <div className="text-xs text-gray-500 mb-1">총 정답</div>
-                             <div className="text-xl font-bold text-[#2b6cb0]">
+                  {/* 결과 요약 */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 mt-8">
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+                      <div className="text-center">
+                        <div className="text-sm text-gray-500 mb-2">총 정답</div>
+                        <div className="text-2xl font-bold text-blue-600">
                  {quizzes.length}개 중 {quizzes.filter(q => q.detailQuizResDto && q.correct).length}개
                </div>
               </div>
-              <div className="bg-[#e6f1fb] rounded-xl p-4 flex flex-col items-center shadow">
-                <div className="text-xs text-gray-500 mb-1">상세 퀴즈 경험치</div>
-              <div className="text-xl font-bold text-[#43e6b5]">
+                    </div>
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+                      <div className="text-center">
+                        <div className="text-sm text-gray-500 mb-2">상세 퀴즈 경험치</div>
+                        <div className="text-2xl font-bold text-indigo-600">
                 +{quizzes.filter(q => q.detailQuizResDto).reduce((sum, q) => sum + (Number(q.gainExp) || 0), 0)}점
+                        </div>
               </div>
             </div>
           </div>
 
-          <div className="mt-6 flex justify-center">
+                  {/* 메인페이지 이동 버튼 */}
+                  <div className="text-center">
             <button
               onClick={() => {
                 router.push('/');
                 window.scrollTo(0, 0);
               }}
-              className="px-6 py-3 bg-[#2b6cb0] text-white rounded-lg hover:bg-[#1e40af] transition-colors font-semibold"
+                      className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
             >
               메인페이지로 이동
             </button>
           </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     );
@@ -509,12 +545,13 @@ export default function NewsQuizPage() {
   // 퀴즈 데이터가 없는 경우 처리
   if (!quizzes || quizzes.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50/50 via-indigo-50/50 to-blue-100/50 px-4">
         <div className="text-center">
-          <div className="text-gray-600 mb-4">상세 퀴즈가 없습니다.</div>
+          <div className="text-2xl font-bold text-gray-600 mb-4">상세 퀴즈가 없습니다</div>
+          <div className="text-gray-500 mb-6">해당 뉴스에 대한 상세 퀴즈가 준비되지 않았습니다.</div>
           <button 
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-[#2b6cb0] text-white rounded-lg hover:bg-[#1e40af] transition-colors"
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full hover:from-blue-700 hover:to-indigo-700 transition-colors"
           >
             다시 시도
           </button>
@@ -524,29 +561,72 @@ export default function NewsQuizPage() {
   }
 
   return (
-      <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-8 px-4">
-        <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center gap-8 mb-10">
-          {NewsInfoCard}
-        
-        {/* 진행 상황 표시 */}
-        <div className="w-full mb-4">
+    <div className="font-sans min-h-screen relative">
+      {/* 전체 배경 */}
+      <div 
+        className="fixed inset-0 bg-gradient-to-br from-blue-50/50 via-indigo-50/50 to-blue-100/50 transition-opacity duration-300"
+        style={{ opacity: backgroundOpacity }}
+      ></div>
+      
+      {/* 배경 패턴 */}
+      <div 
+        className="fixed inset-0 opacity-10 transition-opacity duration-300"
+        style={{ opacity: 0.1 * backgroundOpacity }}
+      >
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
+        <div className="absolute top-40 right-10 w-72 h-72 bg-indigo-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
+        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-4000"></div>
+      </div>
+
+      {/* 콘텐츠 */}
+      <div className="relative z-10">
+        {/* Hero Section - 상세 퀴즈 소개 */}
+        <section className="pt-12 pb-8">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              {/* 메인 헤드라인 */}
+              <div className="mb-8">
+                <div className="inline-flex items-center justify-center w-20 h-20 mb-6">
+                  <svg className="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+                  상세 퀴즈
+                </h1>
+                <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                  해당 뉴스 기사의 내용을 바탕으로 상세퀴즈를 출제합니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 퀴즈 섹션 */}
+        <section className="pb-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+              {/* 퀴즈 섹션 */}
+              <div className="p-8">
+                {/* 진행 상황 표시 - 아직 퀴즈를 제출하지 않은 경우에만 표시 */}
+                {!isAllQuizzesSolved() && (
+                  <div className="w-full mb-6">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm text-gray-600">진행 상황</span>
-            <span className="text-sm font-semibold text-[#2b6cb0]">
+                      <span className="text-sm font-semibold text-blue-600">
               {Object.keys(answers).length} / {quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length}
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
-              className="bg-[#2b6cb0] h-2 rounded-full transition-all duration-300"
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length ? (Object.keys(answers).length / quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length) * 100 : 0}%` }}
             ></div>
           </div>
         </div>
-
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#2b6cb0] mb-3 text-center">상세 퀴즈</h1>
+                )}
         
-          <div className="w-full flex flex-col items-center">
+                <div className="space-y-8">
           {quizzes.map((quizData, idx) => {
             const quiz = quizData.detailQuizResDto;
             
@@ -564,13 +644,12 @@ export default function NewsQuizPage() {
                const isCorrect = quizData.correct;
               
               return (
-                <div key={quiz.id} className="mb-8 w-full">
+                        <div key={quiz.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
                   <div className="font-bold text-lg mb-4 flex items-center gap-2">
-                    <span className="bg-[#2b6cb0] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                            <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
                       {idx + 1}
                     </span>
                     {quiz.question}
-                    <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">완료</span>
                   </div>
                   <div className="grid grid-cols-1 gap-3">
                     {(['OPTION1', 'OPTION2', 'OPTION3'] as const).map((option) => {
@@ -631,9 +710,9 @@ export default function NewsQuizPage() {
             
             // 아직 안 푼 퀴즈인 경우 선택 가능한 UI 표시
             return (
-              <div key={quiz.id} className="mb-8 w-full">
+                      <div key={quiz.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
                 <div className="font-bold text-lg mb-4 flex items-center gap-2">
-                  <span className="bg-[#2b6cb0] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                          <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
                     {idx + 1}
                   </span>
                   {quiz.question}
@@ -651,23 +730,23 @@ export default function NewsQuizPage() {
                           setAnswers(prev => ({ ...prev, [quiz.id]: option }));
                         }}
                         disabled={false}
-                        className={`p-4 rounded-lg border-2 transition-all text-left hover:shadow-md hover:border-gray-300 ${
+                                className={`p-4 rounded-lg border-2 transition-all text-left hover:shadow-md hover:border-blue-300 ${
                           isSelected 
-                            ? "border-[#2b6cb0] bg-[#e6f1fb]" 
+                                    ? "border-blue-600 bg-blue-100" 
                             : "border-gray-200 bg-white"
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                             isSelected 
-                              ? "bg-[#2b6cb0] text-white" 
+                                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white" 
                               : "bg-gray-200 text-gray-600"
                           }`}>
                             {optionLabel}
                           </div>
                           <span className={`font-medium ${
                             isSelected 
-                              ? "text-[#2b6cb0]" 
+                                      ? "text-blue-700" 
                               : "text-gray-700"
                           }`}>
                             {optionText}
@@ -683,22 +762,36 @@ export default function NewsQuizPage() {
             </div>
         
         {/* 제출 버튼 */}
+                <div className="mt-8 text-center">
                 <button
-          className={`w-full py-4 rounded-xl font-bold text-lg shadow transition-all ${
-            Object.keys(answers).length === quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length && !submitting
-              ? "bg-[#2b6cb0] text-white hover:bg-[#1e40af]"
+                    className={`px-8 py-4 rounded-full font-bold text-lg shadow transition-all ${
+                      Object.keys(answers).length === quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length && 
+                      quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length > 0 && 
+                      !submitting
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transform hover:scale-105"
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
           }`}
           onClick={submitAllQuizzes}
-          disabled={Object.keys(answers).length !== quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length || submitting}
+                    disabled={
+                      Object.keys(answers).length !== quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length || 
+                      quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length === 0 || 
+                      submitting
+                    }
         >
           {submitting 
             ? "제출 중..." 
+                      : quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length === 0
+                        ? "모든 퀴즈 완료"
             : Object.keys(answers).length === quizzes.filter(q => q.detailQuizResDto && !isQuizSolved(q)).length
               ? "퀴즈 제출하기" 
               : "모든 문제를 풀어주세요"
           }
                 </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
               </div>
       </div>
   );
