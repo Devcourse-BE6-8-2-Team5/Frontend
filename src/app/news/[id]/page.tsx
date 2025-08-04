@@ -23,8 +23,6 @@ export default function NewsDetailPage() {
   const [news, setNews] = useState<NewsDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [alreadySolved, setAlreadySolved] = useState(false);
-  const [checkingSolved, setCheckingSolved] = useState(true);
 
   // 페이지 로드 시 스크롤을 맨 위로 올리기
   useEffect(() => {
@@ -53,58 +51,7 @@ export default function NewsDetailPage() {
     fetchNews();
   }, [newsId]);
 
-  // 퀴즈 풀이 여부 확인
-  useEffect(() => {
-    if (!newsId) return;
-    const checkAlreadySolved = async () => {
-      setCheckingSolved(true);
-      try {
-        // 먼저 해당 뉴스의 퀴즈가 있는지 확인
-        const quizRes = await fetch(`/api/quiz/detail/news/${newsId}`);
-        if (!quizRes.ok) {
-          setCheckingSolved(false);
-          return;
-        }
 
-        const quizData = await quizRes.json();
-        if (quizData.code !== 200 || !quizData.data || quizData.data.length === 0) {
-          setCheckingSolved(false);
-          return;
-        }
-
-        // 퀴즈가 있으면 사용자의 퀴즈 히스토리를 확인
-        const quizIds = quizData.data.map((quiz: any) => quiz.id);
-
-        // 각 퀴즈에 대해 사용자가 풀었는지 확인
-        let solvedCount = 0;
-        for (const quizId of quizIds) {
-          try {
-            const historyRes = await fetch(`/api/quiz/detail/${quizId}`, {
-              credentials: 'include',
-            });
-            if (historyRes.ok) {
-              const historyData = await historyRes.json();
-              if (historyData.code === 200 && historyData.data && historyData.data.answer !== null) {
-                solvedCount++;
-              }
-            }
-          } catch (error) {
-            console.error('퀴즈 히스토리 확인 오류:', error);
-          }
-        }
-
-        // 모든 퀴즈를 풀었으면 완료로 간주
-        if (solvedCount === quizIds.length && quizIds.length > 0) {
-          setAlreadySolved(true);
-        }
-      } catch (error) {
-        console.error('퀴즈 풀이 여부 확인 오류:', error);
-      } finally {
-        setCheckingSolved(false);
-      }
-    };
-    checkAlreadySolved();
-  }, [newsId]);
 
   const handleQuiz = () => {
     router.push(`/news/${newsId}/quiz`);
@@ -182,16 +129,7 @@ export default function NewsDetailPage() {
           </div>
         </div>
 
-                 {/* 이미 퀴즈를 풀었으면 완료 메시지 표시, 아니면 퀴즈 버튼 표시 */}
-         {!checkingSolved && (
-             alreadySolved ? (
-                 <div className="w-full max-w-4xl py-4 rounded-2xl bg-gradient-to-r from-green-400 to-green-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 mb-8">
-                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                   </svg>
-                   상세 퀴즈 완료
-                 </div>
-             ) : (
+                 {/* 항상 퀴즈 버튼 표시 */}
                  <button
                      onClick={handleQuiz}
                      className="w-full max-w-4xl py-4 rounded-2xl bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold text-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-3 mb-8"
@@ -201,8 +139,6 @@ export default function NewsDetailPage() {
                    </svg>
                    상세 퀴즈 풀러가기
                  </button>
-             )
-         )}
        </div>
    );
 } 

@@ -7,12 +7,9 @@ interface User {
   name: string;
   email: string;
   role: string;
-<<<<<<< HEAD
   profileImgUrl?: string;
   level?: number;
   exp?: number;
-=======
->>>>>>> b0ee16a (work)
 }
 
 interface AuthContextType {
@@ -42,7 +39,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const login = (userData: User) => {
-<<<<<<< HEAD
     // profileImgUrl이 없으면 빈 문자열로 설정
     const userWithProfile = {
       ...userData,
@@ -51,11 +47,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(userWithProfile);
     setIsAuthenticated(true);
     localStorage.setItem('user', JSON.stringify(userWithProfile));
-=======
-    setUser(userData);
-    setIsAuthenticated(true);
-    localStorage.setItem('user', JSON.stringify(userData));
->>>>>>> b0ee16a (work)
   };
 
   const logout = async () => {
@@ -65,11 +56,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         method: 'DELETE',
         credentials: 'include',
       });
-<<<<<<< HEAD
 
-=======
-      
->>>>>>> b0ee16a (work)
       if (response.ok) {
         alert('로그아웃되었습니다.');
         // 메인페이지로 리다이렉트
@@ -90,18 +77,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await fetch('/api/members/info', {
         credentials: 'include',
       });
-<<<<<<< HEAD
 
-=======
-      
->>>>>>> b0ee16a (work)
       if (response.ok) {
         const data = await response.json();
         if (data.data) {
           setUser(data.data);
           setIsAuthenticated(true);
         }
-<<<<<<< HEAD
       } else if (response.status === 401) {
         console.log('사용자가 로그인되지 않았습니다.');
         setUser(null);
@@ -109,16 +91,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem('user');
       } else {
         console.error('인증 확인 실패:', response.status);
-=======
-      } else {
-        // 인증되지 않은 경우
->>>>>>> b0ee16a (work)
         setUser(null);
         setIsAuthenticated(false);
         localStorage.removeItem('user');
       }
     } catch (error) {
       console.error('인증 확인 실패:', error);
+      // 백엔드 서버가 실행되지 않은 경우에도 에러를 던지지 않음
       setUser(null);
       setIsAuthenticated(false);
       localStorage.removeItem('user');
@@ -138,14 +117,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-<<<<<<< HEAD
-      <AuthContext.Provider value={value}>
-        {children}
-      </AuthContext.Provider>
-=======
     <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
->>>>>>> b0ee16a (work)
   );
 }; 
