@@ -32,7 +32,19 @@ interface NewsPage {
   last: boolean;
 }
 
-
+interface TodayNews {
+  id: number;
+  title: string;
+  content: string;
+  description: string;
+  link: string;
+  imgUrl: string;
+  originCreatedDate: string;
+  mediaName: string;
+  journalist: string;
+  originalNewsUrl: string;
+  newsCategory: string;
+}
 
 interface RankingMember {
   id: number;
@@ -54,6 +66,8 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [rankingMembers, setRankingMembers] = useState<RankingMember[]>([]);
   const [rankingLoading, setRankingLoading] = useState(true);
+  const [todayNews, setTodayNews] = useState<TodayNews | null>(null);
+  const [todayNewsLoading, setTodayNewsLoading] = useState(true);
   const { checkAuth } = useAuth();
 
   useEffect(() => {
@@ -67,7 +81,7 @@ export default function Home() {
       alert(message); // 카카오 로그인 성공 메시지 팝업
       // 소셜로그인 성공 후 최신 사용자 정보 가져오기
       checkAuth();
-      
+
       // 리다이렉트 파라미터가 있으면 해당 페이지로 이동
       if (redirect) {
         console.log('소셜 로그인 성공 후 리다이렉트:', redirect);
@@ -155,6 +169,30 @@ export default function Home() {
     fetchRanking();
   }, []);
 
+  // 오늘의 뉴스 불러오기
+  useEffect(() => {
+    const fetchTodayNews = async () => {
+      setTodayNewsLoading(true);
+      try {
+        const response = await fetch('/api/news/today');
+        const data = await response.json();
+
+        if (response.ok && data.code === 200 && data.data) {
+          setTodayNews(data.data);
+        } else {
+          setTodayNews(null);
+        }
+      } catch (err) {
+        console.error('오늘의 뉴스 조회 실패:', err);
+        setTodayNews(null);
+      } finally {
+        setTodayNewsLoading(false);
+      }
+    };
+
+    fetchTodayNews();
+  }, []);
+
   return (
       <div className="font-sans min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] flex flex-col items-center relative">
         {/* 상단 네비게이션은 layout.tsx에서 공통 처리됨 */}
@@ -163,14 +201,53 @@ export default function Home() {
         <div className="flex flex-col items-center w-full gap-10 mt-2 pt-20">
           <div className="flex flex-row gap-8 w-full max-w-6xl justify-center relative">
             {/* 오늘의 뉴스 카드 */}
-            <Link href="/todaynews" className="flex-1 min-w-[260px] max-w-[400px] h-[180px] rounded-3xl bg-gradient-to-b from-[#bfe0f5] via-[#8fa4c3] via-70% to-[#e6f1fb] flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
-              <span className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-md">오늘의 뉴스</span>
+            <Link href="/todaynews" className="flex-1 min-w-[260px] max-w-[400px] h-[180px] rounded-3xl bg-gradient-to-b from-[#bfe0f5] via-[#8fa4c3] via-70% to-[#e6f1fb] shadow-lg hover:scale-105 transition-transform cursor-pointer overflow-hidden relative">
+              {todayNewsLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-white text-lg">로딩 중...</div>
+                  </div>
+              ) : todayNews ? (
+                  <div className="relative h-full">
+                    {/* 배경 이미지 */}
+                    {todayNews.imgUrl && (
+                        <div className="absolute inset-0">
+                          <Image
+                              src={todayNews.imgUrl}
+                              alt={todayNews.title}
+                              fill
+                              className="object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/40"></div>
+                        </div>
+                    )}
+
+                    {/* 오버레이 텍스트 */}
+                    <div className="relative z-10 h-full flex flex-col justify-end p-4">
+                      <div className="text-white">
+                        <div className="text-xs font-semibold mb-1 bg-[#7f9cf5]/80 px-2 py-1 rounded-full inline-block">
+                          오늘의 뉴스
+                        </div>
+                        <h3 className="text-sm font-bold leading-tight overflow-hidden" style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical'
+                        }}>
+                          {todayNews.title}
+                        </h3>
+                      </div>
+                    </div>
+                  </div>
+              ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <span className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-md">오늘의 뉴스</span>
+                  </div>
+              )}
             </Link>
             {/* OX 퀴즈 카드 */}
             <Link href="/oxquiz" className="flex-1 min-w-[260px] max-w-[400px] h-[180px] rounded-3xl bg-gradient-to-b from-[#bfe0f5] via-[#8fa4c3] via-70% to-[#e6f1fb] flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
               <span className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-md">OX 퀴즈</span>
             </Link>
-            
+
             {/* 랭킹 컴포넌트 - OX 퀴즈 카드 옆에 배치 */}
             <div className="hidden lg:block w-64">
               <div className="bg-white/95 rounded-2xl shadow-lg p-4 border border-white/50 backdrop-blur-sm">
@@ -180,38 +257,38 @@ export default function Home() {
                   </svg>
                   <h3 className="text-lg font-bold text-[#2b6cb0]">🏆 랭킹</h3>
                 </div>
-                
+
                 {rankingLoading ? (
-                  <div className="text-sm text-gray-500 text-center py-4">랭킹 로딩 중...</div>
+                    <div className="text-sm text-gray-500 text-center py-4">랭킹 로딩 중...</div>
                 ) : rankingMembers.length === 0 ? (
-                  <div className="text-sm text-gray-500 text-center py-4">랭킹 데이터가 없습니다.</div>
+                    <div className="text-sm text-gray-500 text-center py-4">랭킹 데이터가 없습니다.</div>
                 ) : (
-                  <div className="space-y-2">
-                    {rankingMembers.slice(0, 3).map((member) => (
-                      <div key={member.id} className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-[#f8fafc] to-[#e6f1fb] border border-[#e0e7ef]/50">
-                        {/* 순위 */}
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                          member.rank === 1 ? 'bg-yellow-400 text-white' :
-                          member.rank === 2 ? 'bg-gray-300 text-white' :
-                          member.rank === 3 ? 'bg-orange-400 text-white' :
-                          'bg-[#7f9cf5] text-white'
-                        }`}>
-                          {member.rank}
-                        </div>
-                        
-                        {/* 캐릭터 이미지 */}
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7f9cf5] to-[#43e6b5] flex items-center justify-center">
-                          <span className="text-sm">{member.characterImage}</span>
-                        </div>
-                        
-                        {/* 사용자 정보 */}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-[#2b6cb0] truncate">{member.name}</div>
-                          <div className="text-xs text-[#64748b]">Lv.{member.level} • {member.exp}EXP</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                    <div className="space-y-2">
+                      {rankingMembers.slice(0, 3).map((member, index) => (
+                          <div key={member.id || `ranking-${index}`} className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-[#f8fafc] to-[#e6f1fb] border border-[#e0e7ef]/50">
+                            {/* 순위 */}
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                member.rank === 1 ? 'bg-yellow-400 text-white' :
+                                    member.rank === 2 ? 'bg-gray-300 text-white' :
+                                        member.rank === 3 ? 'bg-orange-400 text-white' :
+                                            'bg-[#7f9cf5] text-white'
+                            }`}>
+                              {member.rank}
+                            </div>
+
+                            {/* 캐릭터 이미지 */}
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7f9cf5] to-[#43e6b5] flex items-center justify-center">
+                              <span className="text-sm">{member.characterImage}</span>
+                            </div>
+
+                            {/* 사용자 정보 */}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-semibold text-[#2b6cb0] truncate">{member.name}</div>
+                              <div className="text-xs text-[#64748b]">Lv.{member.level} • {member.exp}EXP</div>
+                            </div>
+                          </div>
+                      ))}
+                    </div>
                 )}
               </div>
             </div>
@@ -282,9 +359,9 @@ export default function Home() {
               </div>
           ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {newsArticles.map((article) => (
+                {newsArticles.map((article, index) => (
                     <Link
-                        key={article.id}
+                        key={article.id || `article-${index}`}
                         href={`/news/${article.id}`}
                         className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden group"
                     >
@@ -309,11 +386,19 @@ export default function Home() {
                           <span className="text-sm text-gray-500">{article.mediaName}</span>
                         </div>
 
-                        <h3 className="text-lg font-bold text-[#2b6cb0] mb-2 line-clamp-2 group-hover:text-[#5a7bd8] transition-colors">
+                        <h3 className="text-lg font-bold text-[#2b6cb0] mb-2 group-hover:text-[#5a7bd8] transition-colors overflow-hidden" style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical'
+                        }}>
                           {article.title}
                         </h3>
 
-                        <p className="text-gray-600 text-sm line-clamp-3 mb-4">
+                        <p className="text-gray-600 text-sm mb-4 overflow-hidden" style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical'
+                        }}>
                           {article.description || article.content.substring(0, 100)}...
                         </p>
 
