@@ -202,16 +202,18 @@ export default function NewsQuizPage() {
           }
 
           const result = data.data;
+          console.log(`퀴즈 ${i + 1} 결과:`, result); // 디버깅용 로그
           results.push({
             idx: i,
-            is_correct: result.isCorrect,
+            is_correct: result.correct, // isCorrect → correct로 수정
             user_answer: result.selectedOption,
             correct_option: result.correctOption,
             gainExp: result.gainExp
           });
 
-          if (result.isCorrect) {
+          if (result.correct === true) { // isCorrect → correct로 수정
             totalCorrectCount++;
+            console.log(`정답! 현재 정답 개수: ${totalCorrectCount}`); // 디버깅용 로그
           }
           totalExpGained += result.gainExp;
 
@@ -236,6 +238,7 @@ export default function NewsQuizPage() {
         }
       }
 
+      console.log('최종 결과:', { results, totalCorrectCount, totalExpGained }); // 디버깅용 로그
       setResult({
         details: results,
         correct_count: totalCorrectCount,
