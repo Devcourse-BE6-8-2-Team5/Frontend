@@ -54,7 +54,7 @@ export default function NewsDetailPage() {
 
 
   const handleQuiz = () => {
-    router.push(`/news/${newsId}/quiz`);
+    router.push(`/news/${newsId}/quiz`, { scroll: false });
   };
 
   if (loading) {

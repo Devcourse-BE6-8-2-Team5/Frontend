@@ -54,6 +54,7 @@ export default function OxQuizDetailPage({ params }: PageProps) {
   const [answerResult, setAnswerResult] = useState<FactQuizAnswerDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
 
   // 퀴즈 데이터 가져오기
   const fetchQuizDetail = async (quizId: string) => {
@@ -73,10 +74,14 @@ export default function OxQuizDetailPage({ params }: PageProps) {
       
       console.log('서버 응답 상태:', response.status, response.statusText);
       
+      if (response.status === 401) {
+        setIsUnauthorized(true);
+        setLoading(false);
+        return;
+      }
+      
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('로그인이 필요합니다.');
-        } else if (response.status === 404) {
+        if (response.status === 404) {
           throw new Error('퀴즈를 찾을 수 없습니다.');
         } else {
           throw new Error(`서버 응답 오류: ${response.status} ${response.statusText}`);
@@ -112,7 +117,7 @@ export default function OxQuizDetailPage({ params }: PageProps) {
     // 인증 상태가 확인된 후에만 데이터 로드
     if (isAuthenticated !== undefined) {
       if (!isAuthenticated) {
-        setError('로그인이 필요합니다.');
+        setIsUnauthorized(true);
         setLoading(false);
         return;
       }
@@ -203,6 +208,42 @@ export default function OxQuizDetailPage({ params }: PageProps) {
         <div className="text-center">
           <div className="text-xl font-semibold text-[#2b6cb0] mb-2">퀴즈를 불러오는 중...</div>
           <div className="text-gray-500">잠시만 기다려주세요</div>
+        </div>
+      </div>
+    );
+  }
+
+  // 로그인이 필요한 경우
+  if (isUnauthorized) {
+    return (
+      <div className="min-h-screen flex items-start justify-center pt-50 bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-[#2b6cb0] to-[#43e6b5] rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">로그인이 필요합니다</h2>
+              <p className="text-gray-600">로그인하고 OX퀴즈에 도전해보세요!</p>
+            </div>
+            
+            <div className="space-y-3">
+              <button
+                onClick={() => router.push(`/login?redirect=${encodeURIComponent(`/oxquiz/detail/${id}`)}`)}
+                className="w-full py-3 bg-gradient-to-r from-[#2b6cb0] to-[#43e6b5] text-white font-semibold rounded-lg hover:shadow-lg transition-all duration-300 transform hover:scale-105"
+              >
+                로그인하기
+              </button>
+              <button
+                onClick={() => router.push('/oxquiz')}
+                className="w-full py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                OX퀴즈 목록으로 돌아가기
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );

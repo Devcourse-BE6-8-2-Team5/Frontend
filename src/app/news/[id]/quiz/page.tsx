@@ -34,6 +34,9 @@ interface DetailQuizAnswerDto {
 }
 
 export default function NewsQuizPage() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   const params = useParams();
   const router = useRouter();
   const newsId = params.id;
@@ -42,6 +45,7 @@ export default function NewsQuizPage() {
   const [error, setError] = useState<string | null>(null);
   const [answers, setAnswers] = useState<{ [quizId: number]: 'OPTION1' | 'OPTION2' | 'OPTION3' }>({});
   const [submitting, setSubmitting] = useState(false);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
 
   // 뉴스 제목도 API로 받아오고 싶으면 추가 fetch 필요
   const [newsTitle, setNewsTitle] = useState<string>("");
@@ -58,8 +62,8 @@ export default function NewsQuizPage() {
         });
         
         if (res.status === 401) {
-          alert('로그인이 필요합니다.');
-          router.push(`/login?redirect=${encodeURIComponent(`/news/${newsId}/quiz`)}`);
+          setIsUnauthorized(true);
+          setLoading(false);
           return;
         }
 
@@ -224,9 +228,9 @@ export default function NewsQuizPage() {
             for (const quiz of quizList) {
               try {
                 const historyRes = await fetch(`/api/quiz/detail/${quiz.id}`, {
-                  credentials: 'include',
-                });
-                
+            credentials: 'include',
+          });
+
                 if (historyRes.ok) {
                   const historyResult = await historyRes.json();
                   if (historyResult.code === 200) {
@@ -251,7 +255,7 @@ export default function NewsQuizPage() {
                     quizType: 'DETAIL'
                   });
                 }
-              } catch (error) {
+        } catch (error) {
                 console.error(`퀴즈 ${quiz.id} 히스토리 조회 실패:`, error);
                 // 에러시 기본값으로 설정
                 quizzesWithHistory.push({
@@ -330,6 +334,42 @@ export default function NewsQuizPage() {
     );
   }
 
+  // 로그인이 필요한 경우
+  if (isUnauthorized) {
+    return (
+      <div className="min-h-screen flex items-start justify-center pt-50 bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-[#2b6cb0] to-[#43e6b5] rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">로그인이 필요합니다</h2>
+              <p className="text-gray-600">로그인하고 상세퀴즈에 도전해보세요!</p>
+            </div>
+            
+            <div className="space-y-3">
+              <button
+                onClick={() => router.push(`/login?redirect=${encodeURIComponent(`/news/${newsId}/quiz`)}`)}
+                className="w-full py-3 bg-gradient-to-r from-[#2b6cb0] to-[#43e6b5] text-white font-semibold rounded-lg hover:shadow-lg transition-all duration-300 transform hover:scale-105"
+              >
+                로그인하기
+              </button>
+              <button
+                onClick={() => router.push('/')}
+                className="w-full py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                메인페이지로 돌아가기
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // 에러 상태
   if (error) {
     return (
@@ -370,7 +410,7 @@ export default function NewsQuizPage() {
                          const userAnswer = quizData.answer as 'OPTION1' | 'OPTION2' | 'OPTION3';
              const isCorrect = quizData.correct;
              
-             return (
+              return (
                <div key={quiz.id} className="mb-4 w-full pb-4 border-b border-[#e6eaf3] bg-[#f7fafd] rounded-xl p-4">
                 <div className="font-bold text-lg mb-4 flex items-center justify-center gap-2">
                   <span className="bg-[#2b6cb0] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-2">
@@ -430,7 +470,7 @@ export default function NewsQuizPage() {
                   <span className={`text-sm font-semibold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
                     {isCorrect ? `정답!` : '오답'}
                   </span>
-                </div>
+                    </div>
                   </div>
               );
             })}

@@ -151,12 +151,16 @@ export default function Home() {
             setTotalPages(0);
           }
         } else {
-          // API 호출 실패 시
+          // API 호출 실패 시 (500 에러 등)
+          console.error('뉴스 API 호출 실패:', res.status, res.statusText);
           setNewsArticles([]);
           setTotalPages(0);
         }
       } catch (error) {
         console.error('뉴스 목록 조회 실패:', error);
+        // 에러 발생 시 빈 배열로 설정
+        setNewsArticles([]);
+        setTotalPages(0);
       } finally {
         setNewsLoading(false);
       }
@@ -190,6 +194,8 @@ export default function Home() {
         }
       } catch (error) {
         console.error('랭킹 데이터 조회 실패:', error);
+        // 에러 발생 시 빈 배열로 설정
+        setRankingMembers([]);
       } finally {
         setRankingLoading(false);
       }
@@ -574,7 +580,7 @@ export default function Home() {
       </section>
 
       {/* 뉴스 목록 섹션 */}
-      <section id="news-section" className="py-20 bg-gray-50">
+      <section id="news-section" className="py-20 bg-blue-50/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
@@ -597,8 +603,8 @@ export default function Home() {
                 }}
                 className={`px-6 py-3 rounded-full font-semibold transition-all duration-300 ${
                   selectedCategory === category
-                    ? 'bg-blue-600 text-white shadow-lg'
-                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform hover:scale-105'
+                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 hover:shadow-md'
                 }`}
               >
                 {category}
@@ -618,7 +624,7 @@ export default function Home() {
                   setCurrentPage(1);
                   setSelectedCategory('');
                 }}
-                className="w-full px-6 py-4 pl-12 bg-white rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg"
+                className="w-full px-6 py-4 pl-12 bg-white rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg hover:shadow-xl transition-all duration-300"
               />
               <svg
                 className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
@@ -657,7 +663,7 @@ export default function Home() {
                                    <Link
                     key={article.id}
                     href={`/news/${article.id}`}
-                    className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group flex flex-col h-full"
+                    className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full transform hover:scale-105"
                   >
                     {/* 뉴스 이미지 */}
                     {article.imgUrl && (
@@ -666,7 +672,8 @@ export default function Home() {
                           src={article.imgUrl}
                           alt={article.title}
                           fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="object-contain group-hover:scale-105 transition-transform duration-300"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       </div>
                     )}
@@ -718,7 +725,7 @@ export default function Home() {
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-md"
               >
                 이전
               </button>
@@ -727,12 +734,12 @@ export default function Home() {
                 const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
                 return (
                   <button
-                    key={pageNum}
+                    key={`page-${pageNum}`}
                     onClick={() => setCurrentPage(pageNum)}
                     className={`px-4 py-2 rounded-lg transition-all duration-300 ${
                       currentPage === pageNum
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                        : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:shadow-md'
                     }`}
                   >
                     {pageNum}
@@ -743,7 +750,7 @@ export default function Home() {
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages}
-                className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-md"
               >
                 다음
               </button>
@@ -758,7 +765,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* 서비스 정보 섹션 */}
             <div>
-              <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              <h3 className="text-2xl font-bold mb-4 text-[#2b6cb0]">
                 뉴스OX
               </h3>
               <p className="text-gray-500 mb-4 leading-relaxed">

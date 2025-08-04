@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 // NewsCategory enum (서버와 일치)
 enum NewsCategory {
@@ -51,6 +52,7 @@ export default function OxQuizMainPage() {
   const [quizzes, setQuizzes] = useState<FactQuiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   // 퀴즈 데이터 가져오기
   const fetchQuizzes = async (category?: NewsCategory) => {
@@ -203,10 +205,10 @@ export default function OxQuizMainPage() {
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {quizzes.map(quiz => (
-                <Link 
+                <button
                   key={quiz.id}
-                  href={`/oxquiz/detail/${quiz.id}`}
-                  className="group relative bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer transform hover:scale-[1.02] border-2 border-[#e0e7ef] hover:border-[#7f9cf5]"
+                  onClick={() => router.push(`/oxquiz/detail/${quiz.id}`, { scroll: false })}
+                  className="group relative bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer transform hover:scale-[1.02] border-2 border-[#e0e7ef] hover:border-[#7f9cf5] text-left"
                 >
                   
                   {/* 퀴즈 순서 */}
@@ -244,7 +246,7 @@ export default function OxQuizMainPage() {
                   
                   {/* 호버 효과 */}
                   <div className="absolute inset-0 bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-                </Link>
+                </button>
               ))}
             </div>
           </div>

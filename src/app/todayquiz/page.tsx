@@ -42,6 +42,9 @@ interface TodayNews {
 }
 
 export default function TodayQuizPage() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   const router = useRouter();
   const [dailyQuizzes, setDailyQuizzes] = useState<DailyQuizWithHistoryDto[]>([]);
   const [todayNews, setTodayNews] = useState<TodayNews | null>(null);
@@ -49,6 +52,7 @@ export default function TodayQuizPage() {
   const [error, setError] = useState<string | null>(null);
   const [answers, setAnswers] = useState<{ [quizId: number]: 'OPTION1' | 'OPTION2' | 'OPTION3' }>({});
   const [submitting, setSubmitting] = useState(false);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
 
   // 오늘의 뉴스 조회
   const fetchTodayNews = async () => {
@@ -85,8 +89,8 @@ export default function TodayQuizPage() {
       });
       
       if (res.status === 401) {
-        alert('로그인이 필요합니다.');
-        router.push('/login');
+        setIsUnauthorized(true);
+        setLoading(false);
         return;
       }
 
@@ -238,6 +242,42 @@ export default function TodayQuizPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2b6cb0] mx-auto mb-4"></div>
           <p className="text-gray-600">오늘의 퀴즈를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 로그인이 필요한 경우
+  if (isUnauthorized) {
+    return (
+      <div className="min-h-screen flex items-start justify-center pt-50 bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-[#2b6cb0] to-[#43e6b5] rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">로그인이 필요합니다</h2>
+              <p className="text-gray-600">로그인하고 오늘의퀴즈에 도전해보세요!</p>
+            </div>
+            
+            <div className="space-y-3">
+              <button
+                onClick={() => router.push('/login')}
+                className="w-full py-3 bg-gradient-to-r from-[#2b6cb0] to-[#43e6b5] text-white font-semibold rounded-lg hover:shadow-lg transition-all duration-300 transform hover:scale-105"
+              >
+                로그인하기
+              </button>
+              <button
+                onClick={() => router.push('/')}
+                className="w-full py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                메인페이지로 돌아가기
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
