@@ -23,6 +23,11 @@ export default function TodayNews() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 페이지 로드 시 스크롤을 맨 위로 올리기
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     const fetchTodayNews = async () => {
       try {
@@ -219,7 +224,10 @@ export default function TodayNews() {
 
         {/* 퀴즈 버튼 */}
         <div className="mt-8 flex justify-center">
-          <Link href="/todayquiz" className="inline-block w-full max-w-5xl">
+          <Link 
+            href="/todayquiz" 
+            className="inline-block w-full max-w-5xl"
+          >
             <button
               className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold text-xl shadow-lg hover:shadow-lg hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-3"
             >

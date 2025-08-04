@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { FaRegNewspaper } from "react-icons/fa";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 // 서버 API 구조에 맞게 타입 정의 수정
 interface DailyQuizDto {
@@ -98,6 +99,11 @@ export default function TodayQuizPage() {
         },
         credentials: 'include',
       });
+
+      if (response.status === 401) {
+        setError('로그인이 필요합니다.');
+        return;
+      }
 
       if (!response.ok) {
         throw new Error('오늘의 퀴즈를 가져오는데 실패했습니다.');
@@ -197,6 +203,11 @@ export default function TodayQuizPage() {
     }
   };
 
+  // 페이지 로드 시 스크롤을 맨 위로 올리기
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // 페이지 로드 시 데이터 가져오기
   useEffect(() => {
     const loadData = async () => {
@@ -264,19 +275,34 @@ export default function TodayQuizPage() {
     );
   }
 
-  // 에러 상태
+    // 에러 상태
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3]">
+      <div className="min-h-screen flex items-start justify-center bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] pt-70">
         <div className="text-center">
-          <div className="text-red-500 mb-4">오류가 발생했습니다</div>
-          <div className="text-gray-600 text-sm mb-4">{error}</div>
-          <button 
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-[#2b6cb0] text-white rounded-lg hover:bg-[#1e40af] transition-colors"
-          >
-            다시 시도
-          </button>
+          {error.includes('로그인이 필요') || error.includes('401') ? (
+            <>
+              <div className="text-2xl font-bold text-[#2b6cb0] mb-4">오늘의 퀴즈를 풀려면 로그인이 필요해요!</div>
+              <div className="text-gray-600 mb-6 text-lg">로그인하고 퀴즈에 도전해보세요.</div>
+              <button
+                onClick={() => router.push(`/login?redirect=${encodeURIComponent('/todayquiz')}`)}
+                className="px-6 py-3 bg-[#7f9cf5] text-white rounded-lg hover:bg-[#5a7bd8] transition-colors font-semibold text-lg"
+              >
+                로그인하기
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="text-xl font-semibold text-red-600 mb-2">오류가 발생했습니다</div>
+              <div className="text-gray-500 mb-4">{error}</div>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-[#7f9cf5] text-white rounded-lg hover:bg-[#5a7bd8] transition-colors"
+              >
+                다시 시도
+              </button>
+            </>
+          )}
         </div>
       </div>
     );

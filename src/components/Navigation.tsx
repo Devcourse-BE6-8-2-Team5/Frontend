@@ -12,7 +12,6 @@ export default function Navigation() {
   const { isAuthenticated, user, logout } = useAuth();
   const [characterImage, setCharacterImage] = useState<string>("🐣");
 
-
   // 디버깅용: 사용자 정보 출력
   useEffect(() => {
     if (user) {
@@ -41,7 +40,8 @@ export default function Navigation() {
   };
 
   return (
-    <nav className="w-full max-w-6xl mx-auto flex justify-between items-center py-5 px-6">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+      <div className="w-full max-w-6xl mx-auto flex justify-between items-center py-5 px-6">
       <Link href="/" className="text-2xl font-extrabold text-[#2b6cb0] tracking-tight hover:opacity-80 transition">
         뉴스OX
       </Link>
@@ -79,6 +79,7 @@ export default function Navigation() {
             </button>
           </Link>
         )}
+      </div>
       </div>
     </nav>
   );

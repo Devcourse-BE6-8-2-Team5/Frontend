@@ -103,6 +103,11 @@ export default function OxQuizDetailPage({ params }: PageProps) {
     }
   };
 
+  // 페이지 로드 시 스크롤을 맨 위로 올리기
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     // 인증 상태가 확인된 후에만 데이터 로드
     if (isAuthenticated !== undefined) {

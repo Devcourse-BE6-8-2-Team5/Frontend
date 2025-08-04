@@ -26,6 +26,11 @@ export default function NewsDetailPage() {
   const [alreadySolved, setAlreadySolved] = useState(false);
   const [checkingSolved, setCheckingSolved] = useState(true);
 
+  // 페이지 로드 시 스크롤을 맨 위로 올리기
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     if (!newsId) return;
     const fetchNews = async () => {
@@ -177,27 +182,27 @@ export default function NewsDetailPage() {
           </div>
         </div>
 
-        {/* 이미 퀴즈를 풀었으면 완료 메시지 표시, 아니면 퀴즈 버튼 표시 */}
-        {!checkingSolved && (
-            alreadySolved ? (
-                <div className="w-full max-w-4xl py-4 rounded-2xl bg-gradient-to-r from-green-400 to-green-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  상세 퀴즈 완료
-                </div>
-            ) : (
-                <button
-                    onClick={handleQuiz}
-                    className="w-full max-w-4xl py-4 rounded-2xl bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold text-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-3"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  상세 퀴즈 풀러가기
-                </button>
-            )
-        )}
-      </div>
-  );
+                 {/* 이미 퀴즈를 풀었으면 완료 메시지 표시, 아니면 퀴즈 버튼 표시 */}
+         {!checkingSolved && (
+             alreadySolved ? (
+                 <div className="w-full max-w-4xl py-4 rounded-2xl bg-gradient-to-r from-green-400 to-green-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 mb-8">
+                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                   </svg>
+                   상세 퀴즈 완료
+                 </div>
+             ) : (
+                 <button
+                     onClick={handleQuiz}
+                     className="w-full max-w-4xl py-4 rounded-2xl bg-gradient-to-r from-[#7f9cf5] to-[#43e6b5] text-white font-bold text-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-3 mb-8"
+                 >
+                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                   </svg>
+                   상세 퀴즈 풀러가기
+                 </button>
+             )
+         )}
+       </div>
+   );
 } 

@@ -115,6 +115,11 @@ export default function OxQuizMainPage() {
     }
   };
 
+  // 페이지 로드 시 스크롤을 맨 위로 올리기
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // 페이지 로드 시 전체 퀴즈 데이터 가져오기
   useEffect(() => {
     fetchQuizzes();
