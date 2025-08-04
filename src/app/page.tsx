@@ -303,7 +303,7 @@ export default function Home() {
                 </div>
               </div>
               
-              <div className="bg-blue-50 rounded-2xl p-6 mb-8">
+              <div className="bg-white rounded-2xl p-6 mb-8 shadow-lg border border-blue-200">
                 <div className="text-sm font-semibold text-blue-800 mb-2">💡 상세퀴즈 풀이 방법</div>
                 <div className="text-sm text-blue-700">
                   1. 뉴스를 읽고 →  2. 해당 뉴스 페이지에서 "상세 퀴즈 풀러가기" 버튼 클릭
@@ -378,7 +378,7 @@ export default function Home() {
                 </div>
               </div>
               
-              <div className="bg-purple-50 rounded-2xl p-6 mb-8">
+              <div className="bg-white rounded-2xl p-6 mb-8 shadow-lg border border-purple-200">
                 <div className="text-sm font-semibold text-purple-800 mb-2">💡 오늘의퀴즈 풀이 방법</div>
                 <div className="text-sm text-purple-700">
                   1. 오늘의 뉴스 페이지에서 →  2. "오늘의 퀴즈 풀기" 버튼 클릭
@@ -442,7 +442,7 @@ export default function Home() {
                 </div>
               </div>
               
-              <div className="bg-indigo-50 rounded-2xl p-6 mb-8">
+              <div className="bg-white rounded-2xl p-6 mb-8 shadow-lg border border-indigo-200">
                 <div className="text-sm font-semibold text-indigo-800 mb-2">💡 OX퀴즈 풀이 방법</div>
                 <div className="text-sm text-indigo-700">
                   1. OX퀴즈 목록에서 원하는 퀴즈 선택 →  2. 진짜뉴스와 가짜뉴스 중 정답 고르기
