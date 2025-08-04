@@ -106,14 +106,33 @@ export default function OxQuizDetailPage({ params }: PageProps) {
       if (result.code === 200) {
         setQuizData(result.data);
         
-         // 무작위로 진짜 뉴스를 뉴스 A 또는 B에 배치
-         setIsAReal(Math.random() < 0.5);
-         
-         console.log('퀴즈 상태:', result.data.answer !== null ? '이미 푼 퀴즈' : '안 푼 퀴즈');
-         console.log('뉴스 순서:', isAReal);
-         console.log('서버에서 온 answer:', result.data.answer);
-         console.log('서버에서 온 correct:', result.data.correct);
-         console.log('서버에서 온 correctNewsType:', result.data.factQuizDto.correctNewsType);
+        // localStorage에서 저장된 뉴스 순서 확인
+        const storageKey = `oxquiz_news_order_${quizId}`;
+        const savedOrder = localStorage.getItem(storageKey);
+        
+        if (savedOrder !== null) {
+          // 저장된 순서가 있으면 사용
+          setIsAReal(savedOrder === 'true');
+          console.log('저장된 뉴스 순서 사용:', savedOrder === 'true' ? '뉴스 A가 진짜' : '뉴스 B가 진짜');
+        } else {
+          // 저장된 순서가 없으면 새로 생성하고 저장
+          const newOrder = Math.random() < 0.5;
+          setIsAReal(newOrder);
+          localStorage.setItem(storageKey, newOrder.toString());
+          console.log('새로운 뉴스 순서 생성 및 저장:', newOrder ? '뉴스 A가 진짜' : '뉴스 B가 진짜');
+        }
+        
+        // 이미 푼 퀴즈인 경우 localStorage에 완료 상태 저장
+        if (result.data.answer !== null) {
+          localStorage.setItem(`oxquiz_completed_${quizId}`, 'true');
+          console.log(`퀴즈 ${quizId}는 이미 완료된 퀴즈입니다.`);
+        }
+        
+        console.log('퀴즈 상태:', result.data.answer !== null ? '이미 푼 퀴즈' : '안 푼 퀴즈');
+        console.log('뉴스 순서:', isAReal);
+        console.log('서버에서 온 answer:', result.data.answer);
+        console.log('서버에서 온 correct:', result.data.correct);
+        console.log('서버에서 온 correctNewsType:', result.data.factQuizDto.correctNewsType);
       } else {
         throw new Error(result.message || '퀴즈 데이터를 가져오는데 실패했습니다.');
       }
@@ -180,6 +199,9 @@ export default function OxQuizDetailPage({ params }: PageProps) {
       
       if (result.code === 200) {
         setAnswerResult(result.data);
+        // 퀴즈 완료 상태를 localStorage에 저장
+        localStorage.setItem(`oxquiz_completed_${id}`, 'true');
+        console.log(`퀴즈 ${id} 완료 상태를 localStorage에 저장했습니다.`);
       } else {
         throw new Error(result.message || '정답 제출에 실패했습니다.');
       }
@@ -226,23 +248,30 @@ export default function OxQuizDetailPage({ params }: PageProps) {
   // 로그인이 필요한 경우
   if (isUnauthorized) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-indigo-50/50 via-purple-50/50 to-indigo-100/50 px-4">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-red-600 mb-4">로그인이 필요합니다</div>
-          <div className="text-gray-600 mb-6">로그인하고 OX퀴즈에 도전해보세요!</div>
+      <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-b from-blue-50/50 via-indigo-50/50 to-blue-100/50 px-4 pt-60">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
+          <div className="text-center">
+            <div className="flex justify-center mb-4">
+              <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div className="text-2xl font-bold text-blue-600 mb-4">로그인이 필요합니다</div>
+            <div className="text-gray-600 mb-6">로그인하고 OX퀴즈에 도전해보세요!</div>
             <div className="space-y-3">
               <button
                 onClick={() => router.push(`/login?redirect=${encodeURIComponent(`/oxquiz/detail/${id}`)}`)}
-              className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full hover:from-indigo-700 hover:to-purple-700 transition-colors"
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors"
               >
                 로그인하기
               </button>
               <button
-                onClick={() => router.push('/oxquiz')}
-              className="px-6 py-3 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                onClick={() => router.push('/')}
+                className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                OX퀴즈 목록으로 돌아가기
+                메인페이지로 돌아가기
               </button>
+            </div>
           </div>
         </div>
       </div>

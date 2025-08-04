@@ -151,7 +151,7 @@ export default function NewsDetailPage() {
                   뉴스 상세
                 </h1>
                 <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                  매일 발행되는 뉴스 기사를 가져와서, 해당 뉴스 기사의 내용을 바탕으로 상세퀴즈를 출제합니다.
+                  매일 발행되는 최신 뉴스 기사를 읽어보세요
                 </p>
               </div>
             </div>

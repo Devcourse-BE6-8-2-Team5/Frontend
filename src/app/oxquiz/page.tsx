@@ -287,7 +287,9 @@ export default function OxQuizMainPage() {
                     
                     {/* 퀴즈 질문과 화살표 */}
                           <div className="flex items-center justify-between mt-auto pt-4">
-                            <span className="text-xs text-gray-500">아직 풀지 않음</span>
+                            <span className={`text-xs ${localStorage.getItem(`oxquiz_completed_${quiz.id}`) ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}>
+                              {localStorage.getItem(`oxquiz_completed_${quiz.id}`) ? '퀴즈 완료' : '아직 풀지 않음'}
+                            </span>
                       <div className="flex items-center gap-2">
                               <span className="text-sm font-semibold text-gray-700 line-clamp-1">
                           {quiz.question}

@@ -338,23 +338,30 @@ export default function NewsQuizPage() {
   // 로그인이 필요한 경우
   if (isUnauthorized) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50/50 via-indigo-50/50 to-blue-100/50 px-4">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-red-600 mb-4">로그인이 필요합니다</div>
-          <div className="text-gray-600 mb-6">로그인하고 상세퀴즈에 도전해보세요!</div>
+      <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-b from-blue-50/50 via-indigo-50/50 to-blue-100/50 px-4 pt-60">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
+          <div className="text-center">
+            <div className="flex justify-center mb-4">
+              <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div className="text-2xl font-bold text-blue-600 mb-4">로그인이 필요합니다</div>
+            <div className="text-gray-600 mb-6">로그인하고 상세퀴즈에 도전해보세요!</div>
             <div className="space-y-3">
               <button
                 onClick={() => router.push(`/login?redirect=${encodeURIComponent(`/news/${newsId}/quiz`)}`)}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full hover:from-blue-700 hover:to-indigo-700 transition-colors"
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors"
               >
                 로그인하기
               </button>
               <button
                 onClick={() => router.push('/')}
-              className="px-6 py-3 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 메인페이지로 돌아가기
               </button>
+            </div>
           </div>
         </div>
       </div>

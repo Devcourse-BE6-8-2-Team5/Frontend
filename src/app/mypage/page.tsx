@@ -16,7 +16,7 @@ interface MemberInfo {
 }
 
 export default function MyPage() {
-  const { isAuthenticated, user, checkAuth } = useAuth();
+  const { isAuthenticated, user, checkAuth, logout } = useAuth();
   const router = useRouter();
   const [memberInfo, setMemberInfo] = useState<MemberInfo | null>(null);
   const [characterInfo, setCharacterInfo] = useState<CharacterInfo | null>(null);
@@ -28,18 +28,25 @@ export default function MyPage() {
   // 인증 확인 및 회원 정보 조회
   useEffect(() => {
     const checkAuthAndFetchInfo = async () => {
-      // 먼저 인증 상태를 다시 확인
-      await checkAuth();
+      try {
+        // 직접 인증 확인 및 회원 정보 조회
+        const response = await fetch('/api/members/info', {
+          credentials: 'include',
+        });
 
-      // 인증이 되지 않은 경우
-      if (!isAuthenticated) {
+        if (response.ok) {
+          // 인증된 경우 회원 정보 설정
+          await fetchMemberInfoFromResponse(response);
+        } else {
+          // 인증되지 않은 경우
+          alert('로그인이 필요합니다.');
+          router.replace('/login');
+        }
+      } catch (error) {
+        console.error('인증 확인 실패:', error);
         alert('로그인이 필요합니다.');
         router.replace('/login');
-        return;
       }
-
-      // 인증된 경우 회원 정보 조회
-      fetchMemberInfo();
     };
 
     checkAuthAndFetchInfo();
@@ -76,6 +83,19 @@ export default function MyPage() {
         throw new Error('회원 정보 조회에 실패했습니다.');
       }
 
+      const data = await response.json();
+      setMemberInfo(data.data);
+      setForm(data.data);
+    } catch (error) {
+      setError('회원 정보를 불러오는데 실패했습니다.');
+      console.error('회원 정보 조회 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMemberInfoFromResponse = async (response: Response) => {
+    try {
       const data = await response.json();
       setMemberInfo(data.data);
       setForm(data.data);
@@ -147,13 +167,10 @@ export default function MyPage() {
           const data = await response.json();
           throw new Error(data.message || '탈퇴에 실패했습니다.');
         }
-        // 로그아웃 처리
-        await fetch('/api/members/logout', {
-          method: 'DELETE',
-          credentials: 'include',
-        });
+        
         alert('탈퇴되었습니다.');
-        router.replace('/');
+        // AuthContext의 logout 함수를 사용하여 로그아웃 처리 (알림 없이)
+        await logout(false);
       } catch (e: any) {
         alert(e.message || '탈퇴에 실패했습니다.');
       }

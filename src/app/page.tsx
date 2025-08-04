@@ -9,8 +9,8 @@ import { getCharacterImageByLevel } from "@/utils/characterUtils";
 
 // 경험치를 기반으로 올바른 레벨을 계산하는 함수
 const calculateLevelFromExp = (exp: number): number => {
-  if (exp >= 100) return 3;
-  if (exp >= 50) return 2;
+  if (exp >= 200) return 3;
+  if (exp >= 100) return 2;
   return 1;
 };
 

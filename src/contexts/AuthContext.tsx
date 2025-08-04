@@ -16,7 +16,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (userData: User) => void;
-  logout: () => void;
+  logout: (showAlert?: boolean) => Promise<void>;
   checkAuth: () => Promise<void>;
 }
 
@@ -49,7 +49,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(userWithProfile));
   };
 
-  const logout = async () => {
+  const logout = async (showAlert: boolean = true) => {
     try {
       // 로그아웃 API 호출
       const response = await fetch('/api/members/logout', {
@@ -57,18 +57,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         credentials: 'include',
       });
 
-      if (response.ok) {
-        alert('로그아웃되었습니다.');
-        // 메인페이지로 리다이렉트
-        window.location.href = '/';
-      }
-    } catch (error) {
-      console.error('로그아웃 API 호출 실패:', error);
-      alert('로그아웃 중 오류가 발생했습니다.');
-    } finally {
+      // API 호출 성공 여부와 관계없이 로컬 상태 정리
       setUser(null);
       setIsAuthenticated(false);
       localStorage.removeItem('user');
+      
+      // showAlert가 true일 때만 알림 표시
+      if (showAlert) {
+        if (response.ok) {
+          alert('로그아웃되었습니다.');
+        } else {
+          alert('로그아웃되었습니다.');
+        }
+      }
+      
+      // 메인페이지로 리다이렉트
+      window.location.href = '/';
+    } catch (error) {
+      console.error('로그아웃 API 호출 실패:', error);
+      
+      // 에러가 발생해도 로컬 상태는 정리
+      setUser(null);
+      setIsAuthenticated(false);
+      localStorage.removeItem('user');
+      
+      // showAlert가 true일 때만 알림 표시
+      if (showAlert) {
+        alert('로그아웃되었습니다.');
+      }
+      window.location.href = '/';
     }
   };
 
