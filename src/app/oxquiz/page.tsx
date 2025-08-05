@@ -49,6 +49,7 @@ interface ApiResponse<T> {
 }
 
 export default function OxQuizMainPage() {
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [quizzes, setQuizzes] = useState<FactQuiz[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,8 +160,6 @@ export default function OxQuizMainPage() {
 
   // 사용자별 localStorage 키 생성 함수
   const getUserSpecificKey = (baseKey: string) => {
-    // AuthContext에서 사용자 정보 가져오기
-    const { user } = useAuth();
     const userName = user?.name || 'anonymous';
     return `${userName}_${baseKey}`;
   };
