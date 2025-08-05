@@ -82,14 +82,21 @@ export default function Home() {
       
       // 소셜로그인 성공 후 최신 사용자 정보 가져오기
       const updateUserInfo = async () => {
+        console.log('소셜 로그인 성공, 사용자 정보 업데이트 시작...');
         await checkAuth();
-        // 상태 업데이트를 위해 잠시 대기
+        console.log('사용자 정보 업데이트 완료');
+        
+        // 상태 업데이트를 위해 충분히 대기
         setTimeout(() => {
           if (redirect) {
             console.log('소셜 로그인 성공 후 리다이렉트:', redirect);
             window.location.href = redirect;
+          } else {
+            // 리다이렉트가 없으면 강제로 페이지 새로고침
+            console.log('페이지 강제 새로고침');
+            window.location.reload();
           }
-        }, 100);
+        }, 500);
       };
       
       updateUserInfo();

@@ -10,14 +10,17 @@ interface User {
   profileImgUrl?: string;
   level?: number;
   exp?: number;
+  member?: User; // 중첩된 member 객체를 위한 속성
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (userData: User) => void;
   logout: (showAlert?: boolean) => Promise<void>;
   checkAuth: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,16 +40,45 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const login = (userData: User) => {
-    // profileImgUrl이 없으면 빈 문자열로 설정
-    const userWithProfile = {
-      ...userData,
-      profileImgUrl: userData.profileImgUrl || ""
-    };
-    setUser(userWithProfile);
+    console.log('로그인 함수 호출됨:', userData);
+    
+    // 데이터 구조에 따라 사용자 정보 추출
+    let actualUserData;
+    if (userData.member) {
+      // member 객체 안에 사용자 정보가 있는 경우
+      actualUserData = {
+        ...userData.member,
+        profileImgUrl: userData.profileImgUrl || ""
+      };
+      console.log('member 객체에서 사용자 정보 추출:', actualUserData);
+    } else {
+      // 평면화된 구조인 경우
+      actualUserData = {
+        ...userData,
+        profileImgUrl: userData.profileImgUrl || ""
+      };
+    }
+    
+    // 즉시 상태 업데이트
+    setUser(actualUserData);
     setIsAuthenticated(true);
-    localStorage.setItem('user', JSON.stringify(userWithProfile));
+    localStorage.setItem('user', JSON.stringify(actualUserData));
+    
+    // 강제로 리렌더링을 위한 추가 업데이트
+    setTimeout(() => {
+      setUser(prev => {
+        if (prev?.id !== actualUserData.id) {
+          console.log('강제 상태 업데이트:', actualUserData);
+          return actualUserData;
+        }
+        return prev;
+      });
+    }, 50);
+    
+    console.log('로그인 상태 업데이트 완료:', actualUserData);
   };
 
   const logout = async (showAlert: boolean = true) => {
@@ -91,6 +123,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const checkAuth = async () => {
     try {
+      console.log('인증 확인 시작...');
       const response = await fetch('/api/members/info', {
         credentials: 'include',
       });
@@ -99,9 +132,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const data = await response.json();
         if (data.data) {
           console.log('인증 확인 성공:', data.data);
-          setUser(data.data);
+          
+          // 데이터 구조에 따라 사용자 정보 추출
+          let actualUserData;
+          if (data.data.member) {
+            // member 객체 안에 사용자 정보가 있는 경우
+            actualUserData = {
+              ...data.data.member,
+              profileImgUrl: data.data.profileImgUrl || ""
+            };
+            console.log('member 객체에서 사용자 정보 추출:', actualUserData);
+          } else {
+            // 평면화된 구조인 경우
+            actualUserData = {
+              ...data.data,
+              profileImgUrl: data.data.profileImgUrl || ""
+            };
+          }
+          
+          setUser(actualUserData);
           setIsAuthenticated(true);
-          localStorage.setItem('user', JSON.stringify(data.data));
+          localStorage.setItem('user', JSON.stringify(actualUserData));
         }
       } else if (response.status === 401) {
         console.log('사용자가 로그인되지 않았습니다.');
@@ -120,34 +171,69 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
       localStorage.removeItem('user');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const refreshUser = async () => {
+    console.log('사용자 정보 새로고침 시작...');
+    await checkAuth();
+    console.log('사용자 정보 새로고침 완료');
+  };
+
   useEffect(() => {
-    // 초기 로드 시 localStorage에서 사용자 정보 복원
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
-        setIsAuthenticated(true);
-        console.log('localStorage에서 사용자 정보 복원:', userData);
-      } catch (error) {
-        console.error('localStorage 사용자 정보 파싱 실패:', error);
-        localStorage.removeItem('user');
+    const initializeAuth = async () => {
+      console.log('AuthContext 초기화 시작...');
+      
+      // 초기 로드 시 localStorage에서 사용자 정보 복원
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        try {
+          const userData = JSON.parse(savedUser);
+          console.log('localStorage에서 사용자 정보 복원:', userData);
+          
+          // 데이터 구조에 따라 사용자 정보 추출
+          let actualUserData;
+          if (userData.member) {
+            // member 객체 안에 사용자 정보가 있는 경우
+            actualUserData = {
+              ...userData.member,
+              profileImgUrl: userData.profileImgUrl || ""
+            };
+            console.log('member 객체에서 사용자 정보 추출:', actualUserData);
+          } else {
+            // 평면화된 구조인 경우
+            actualUserData = {
+              ...userData,
+              profileImgUrl: userData.profileImgUrl || ""
+            };
+          }
+          
+          setUser(actualUserData);
+          setIsAuthenticated(true);
+        } catch (error) {
+          console.error('localStorage 사용자 정보 파싱 실패:', error);
+          localStorage.removeItem('user');
+        }
       }
-    }
-    
-    // 서버에서 최신 사용자 정보 확인
-    checkAuth();
+      
+      // 서버에서 최신 사용자 정보 확인
+      await checkAuth();
+      console.log('AuthContext 초기화 완료');
+    };
+
+    initializeAuth();
   }, []);
 
   const value = {
     user,
     isAuthenticated,
+    isLoading,
     login,
     logout,
     checkAuth,
+    refreshUser,
   };
 
   return (
