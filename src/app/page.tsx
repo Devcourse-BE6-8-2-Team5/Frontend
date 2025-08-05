@@ -126,7 +126,7 @@ export default function Home() {
 
         if (searchQuery) {
           // 검색어가 있는 경우
-          url = `/api/news/search?query=${encodeURIComponent(searchQuery)}&page=${currentPage}&size=9&direction=desc`;
+          url = `/api/news/search?title=${encodeURIComponent(searchQuery)}&page=${currentPage}&size=9&direction=desc`;
         } else if (selectedCategory) {
           // 카테고리가 선택된 경우 - 한글을 영어로 변환
           const categoryMap: { [key: string]: string } = {
