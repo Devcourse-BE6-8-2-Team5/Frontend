@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 // NewsCategory enum (서버와 일치)
 enum NewsCategory {
@@ -156,20 +157,37 @@ export default function OxQuizMainPage() {
     }
   }, [selectedCategory]);
 
-  // 퀴즈 완료 상태 확인 함수
-  const isQuizCompleted = (quizId: number) => {
-    return localStorage.getItem(`oxquiz_completed_${quizId}`) === 'true';
+  // 사용자별 localStorage 키 생성 함수
+  const getUserSpecificKey = (baseKey: string) => {
+    // AuthContext에서 사용자 정보 가져오기
+    const { user } = useAuth();
+    const userName = user?.name || 'anonymous';
+    return `${userName}_${baseKey}`;
   };
 
-  // localStorage 변경 감지하여 강제 리렌더링
+  // 퀴즈 완료 상태 확인 함수
+  const isQuizCompleted = (quizId: number) => {
+    const key = getUserSpecificKey(`oxquiz_completed_${quizId}`);
+    return localStorage.getItem(key) === 'true';
+  };
+
+  // 페이지 포커스 시 퀴즈 상태 업데이트
   useEffect(() => {
+    const handleFocus = () => {
+      setQuizzes(prev => [...prev]);
+    };
+    
     const handleStorageChange = () => {
-      // 강제 리렌더링을 위해 상태 업데이트
       setQuizzes(prev => [...prev]);
     };
 
+    window.addEventListener('focus', handleFocus);
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   // 스크롤에 따른 배경 투명도 계산

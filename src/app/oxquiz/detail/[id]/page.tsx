@@ -43,7 +43,7 @@ interface FactQuizAnswerDto {
 export default function OxQuizDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const id = params.id as string;
   const [quizData, setQuizData] = useState<FactQuizWithHistoryDto | null>(null);
   const [selected, setSelected] = useState<'A' | 'B' | null>(null);
@@ -64,6 +64,12 @@ export default function OxQuizDetailPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // 사용자별 localStorage 키 생성 함수
+  const getUserSpecificKey = (baseKey: string) => {
+    const userName = user?.name || 'anonymous';
+    return `${userName}_${baseKey}`;
+  };
 
   // 퀴즈 데이터 가져오기
   const fetchQuizDetail = async (quizId: string) => {
@@ -104,19 +110,18 @@ export default function OxQuizDetailPage() {
         setQuizData(result.data);
         
         // localStorage에서 저장된 뉴스 순서 확인
-        const storageKey = `oxquiz_news_order_${quizId}`;
+        const storageKey = getUserSpecificKey(`oxquiz_news_order_${quizId}`);
         const savedOrder = localStorage.getItem(storageKey);
         
         if (savedOrder !== null) {
           // 저장된 순서가 있으면 사용
           setIsAReal(savedOrder === 'true');
-                        // 저장된 순서가 있으면 사용
-            } else {
-              // 저장된 순서가 없으면 새로 생성하고 저장
-              const newOrder = Math.random() < 0.5;
-              setIsAReal(newOrder);
-              localStorage.setItem(storageKey, newOrder.toString());
-            }
+        } else {
+          // 저장된 순서가 없으면 새로 생성하고 저장
+          const newOrder = Math.random() < 0.5;
+          setIsAReal(newOrder);
+          localStorage.setItem(storageKey, newOrder.toString());
+        }
       } else {
         throw new Error(result.message || '퀴즈 데이터를 가져오는데 실패했습니다.');
       }
@@ -183,7 +188,8 @@ export default function OxQuizDetailPage() {
         setAnswerResult(result.data);
         
         // 퀴즈 완료 상태를 localStorage에 저장
-        localStorage.setItem(`oxquiz_completed_${id}`, 'true');
+        const completedKey = getUserSpecificKey(`oxquiz_completed_${id}`);
+        localStorage.setItem(completedKey, 'true');
         
       } else {
         throw new Error(result.message || '정답 제출에 실패했습니다.');

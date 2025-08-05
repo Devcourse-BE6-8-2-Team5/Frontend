@@ -74,6 +74,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         credentials: 'include',
       });
 
+
+
       // API 호출 성공 여부와 관계없이 로컬 상태 정리
       setUser(null);
       setIsAuthenticated(false);
