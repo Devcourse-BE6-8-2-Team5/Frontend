@@ -75,20 +75,24 @@ export default function Home() {
   useEffect(() => {
     const loginSuccess = searchParams.get('loginSuccess');
     const message = searchParams.get('message');
-
-
     const redirect = searchParams.get('redirect');
 
     if (loginSuccess === 'true' && message) {
       alert(message); // 카카오 로그인 성공 메시지 팝업
-      // 소셜로그인 성공 후 최신 사용자 정보 가져오기
-      checkAuth();
       
-      // 리다이렉트 파라미터가 있으면 해당 페이지로 이동
-      if (redirect) {
-        console.log('소셜 로그인 성공 후 리다이렉트:', redirect);
-        window.location.href = redirect;
-      }
+      // 소셜로그인 성공 후 최신 사용자 정보 가져오기
+      const updateUserInfo = async () => {
+        await checkAuth();
+        // 상태 업데이트를 위해 잠시 대기
+        setTimeout(() => {
+          if (redirect) {
+            console.log('소셜 로그인 성공 후 리다이렉트:', redirect);
+            window.location.href = redirect;
+          }
+        }, 100);
+      };
+      
+      updateUserInfo();
     }
   }, [searchParams, checkAuth]);
 

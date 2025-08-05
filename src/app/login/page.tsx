@@ -3,9 +3,11 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -37,6 +39,11 @@ export default function LoginPage() {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        // 로그인 성공 시 사용자 정보를 AuthContext에 저장
+        if (data.data) {
+          login(data.data);
+        }
         router.push('/');
       } else {
         const data = await response.json();

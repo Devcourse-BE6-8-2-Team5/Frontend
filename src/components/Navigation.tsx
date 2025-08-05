@@ -22,8 +22,12 @@ export default function Navigation() {
   // 사용자 레벨에 따른 캐릭터 이미지 설정
   useEffect(() => {
     if (user && user.level) {
+      console.log('Navigation - 사용자 레벨 업데이트:', user.level);
       const image = getCharacterImageByLevel(user.level);
       setCharacterImage(image);
+    } else if (user) {
+      // 레벨이 없는 경우 기본 캐릭터 설정
+      setCharacterImage("🐣");
     }
   }, [user]);
 

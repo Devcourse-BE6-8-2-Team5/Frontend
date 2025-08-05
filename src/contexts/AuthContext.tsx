@@ -98,8 +98,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.ok) {
         const data = await response.json();
         if (data.data) {
+          console.log('인증 확인 성공:', data.data);
           setUser(data.data);
           setIsAuthenticated(true);
+          localStorage.setItem('user', JSON.stringify(data.data));
         }
       } else if (response.status === 401) {
         console.log('사용자가 로그인되지 않았습니다.');
@@ -122,6 +124,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
+    // 초기 로드 시 localStorage에서 사용자 정보 복원
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      try {
+        const userData = JSON.parse(savedUser);
+        setUser(userData);
+        setIsAuthenticated(true);
+        console.log('localStorage에서 사용자 정보 복원:', userData);
+      } catch (error) {
+        console.error('localStorage 사용자 정보 파싱 실패:', error);
+        localStorage.removeItem('user');
+      }
+    }
+    
+    // 서버에서 최신 사용자 정보 확인
     checkAuth();
   }, []);
 
