@@ -75,31 +75,19 @@ export default function Home() {
   useEffect(() => {
     const loginSuccess = searchParams.get('loginSuccess');
     const message = searchParams.get('message');
+
+
     const redirect = searchParams.get('redirect');
 
     if (loginSuccess === 'true' && message) {
       alert(message); // 카카오 로그인 성공 메시지 팝업
-      
       // 소셜로그인 성공 후 최신 사용자 정보 가져오기
-      const updateUserInfo = async () => {
-        console.log('소셜 로그인 성공, 사용자 정보 업데이트 시작...');
-        await checkAuth();
-        console.log('사용자 정보 업데이트 완료');
-        
-        // 상태 업데이트를 위해 충분히 대기
-        setTimeout(() => {
-          if (redirect) {
-            console.log('소셜 로그인 성공 후 리다이렉트:', redirect);
-            window.location.href = redirect;
-          } else {
-            // 리다이렉트가 없으면 강제로 페이지 새로고침
-            console.log('페이지 강제 새로고침');
-            window.location.reload();
-          }
-        }, 500);
-      };
+      checkAuth();
       
-      updateUserInfo();
+      // 리다이렉트 파라미터가 있으면 해당 페이지로 이동
+      if (redirect) {
+        window.location.href = redirect;
+      }
     }
   }, [searchParams, checkAuth]);
 
@@ -151,8 +139,10 @@ export default function Home() {
         }
 
         const res = await fetch(url);
+        
         if (res.ok) {
           const data = await res.json();
+          
           if (data.code === 200 && data.data) {
             setNewsArticles(data.data.content || []);
             setTotalPages(data.data.totalPages || 0);
@@ -163,12 +153,14 @@ export default function Home() {
           }
         } else {
           // API 호출 실패 시 (500 에러 등)
-          console.error('뉴스 API 호출 실패:', res.status, res.statusText);
+          console.error(' 뉴스 API 호출 실패:', res.status, res.statusText);
+          const errorText = await res.text();
+          console.error('에러 응답 내용:', errorText);
           setNewsArticles([]);
           setTotalPages(0);
         }
       } catch (error) {
-        console.error('뉴스 목록 조회 실패:', error);
+        console.error(' 뉴스 목록 조회 실패:', error);
         // 에러 발생 시 빈 배열로 설정
         setNewsArticles([]);
         setTotalPages(0);
@@ -193,13 +185,6 @@ export default function Home() {
               ...member,
               rank: index + 1
             }));
-            console.log('랭킹 데이터:', rankingData);
-            console.log('랭킹 데이터 상세:', rankingData.map((member: any) => ({
-              name: member.name,
-              exp: member.exp,
-              level: member.level,
-              characterImage: member.characterImage
-            })));
             setRankingMembers(rankingData);
           }
         }

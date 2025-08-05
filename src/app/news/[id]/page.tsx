@@ -55,7 +55,7 @@ export default function NewsDetailPage() {
         if (data.code !== 200 || !data.data) {
           throw new Error(data.message || '뉴스를 찾을 수 없습니다.');
         }
-        console.log('뉴스 상세 API 응답:', data.data);
+  
         setNews({ ...data.data, imageUrl: data.data.imgUrl });
       } catch (e: any) {
         setError(e.message || '알 수 없는 오류');
