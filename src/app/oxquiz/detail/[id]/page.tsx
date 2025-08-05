@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -38,16 +38,13 @@ interface FactQuizAnswerDto {
   quizType: string;
 }
 
-interface PageProps {
-  params: {
-    id: string;
-  };
-}
 
-export default function OxQuizDetailPage({ params }: PageProps) {
+
+export default function OxQuizDetailPage() {
   const router = useRouter();
+  const params = useParams();
   const { isAuthenticated } = useAuth();
-  const { id } = params;
+  const id = params.id as string;
   const [quizData, setQuizData] = useState<FactQuizWithHistoryDto | null>(null);
   const [selected, setSelected] = useState<'A' | 'B' | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -101,7 +98,7 @@ export default function OxQuizDetailPage({ params }: PageProps) {
       }
       
       const result: ApiResponse<FactQuizWithHistoryDto> = await response.json();
-      console.log('서버 응답 데이터:', result);
+
       
       if (result.code === 200) {
         setQuizData(result.data);
@@ -113,26 +110,13 @@ export default function OxQuizDetailPage({ params }: PageProps) {
         if (savedOrder !== null) {
           // 저장된 순서가 있으면 사용
           setIsAReal(savedOrder === 'true');
-          console.log('저장된 뉴스 순서 사용:', savedOrder === 'true' ? '뉴스 A가 진짜' : '뉴스 B가 진짜');
-        } else {
-          // 저장된 순서가 없으면 새로 생성하고 저장
-          const newOrder = Math.random() < 0.5;
-          setIsAReal(newOrder);
-          localStorage.setItem(storageKey, newOrder.toString());
-          console.log('새로운 뉴스 순서 생성 및 저장:', newOrder ? '뉴스 A가 진짜' : '뉴스 B가 진짜');
-        }
-        
-        // 이미 푼 퀴즈인 경우 localStorage에 완료 상태 저장
-        if (result.data.answer !== null) {
-          localStorage.setItem(`oxquiz_completed_${quizId}`, 'true');
-          console.log(`퀴즈 ${quizId}는 이미 완료된 퀴즈입니다.`);
-        }
-        
-        console.log('퀴즈 상태:', result.data.answer !== null ? '이미 푼 퀴즈' : '안 푼 퀴즈');
-        console.log('뉴스 순서:', isAReal);
-        console.log('서버에서 온 answer:', result.data.answer);
-        console.log('서버에서 온 correct:', result.data.correct);
-        console.log('서버에서 온 correctNewsType:', result.data.factQuizDto.correctNewsType);
+                        // 저장된 순서가 있으면 사용
+            } else {
+              // 저장된 순서가 없으면 새로 생성하고 저장
+              const newOrder = Math.random() < 0.5;
+              setIsAReal(newOrder);
+              localStorage.setItem(storageKey, newOrder.toString());
+            }
       } else {
         throw new Error(result.message || '퀴즈 데이터를 가져오는데 실패했습니다.');
       }
@@ -173,9 +157,7 @@ export default function OxQuizDetailPage({ params }: PageProps) {
         actualSelectedNewsType = isAReal ? 'FAKE' : 'REAL';
       }
       
-      console.log('선택한 뉴스:', selectedAnswer);
-      console.log('진짜 뉴스 위치:', isAReal ? '뉴스 A' : '뉴스 B');
-      console.log('선택한 뉴스 타입:', actualSelectedNewsType);
+      
       
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
       const url = `${API_BASE_URL}/api/quiz/fact/submit/${id}?selectedNewsType=${actualSelectedNewsType}`;
@@ -197,11 +179,12 @@ export default function OxQuizDetailPage({ params }: PageProps) {
       const result: ApiResponse<FactQuizAnswerDto> = await response.json();
       console.log('정답 제출 응답 데이터:', result);
       
-      if (result.code === 200) {
+                   if (result.code === 200) {
         setAnswerResult(result.data);
+        
         // 퀴즈 완료 상태를 localStorage에 저장
         localStorage.setItem(`oxquiz_completed_${id}`, 'true');
-        console.log(`퀴즈 ${id} 완료 상태를 localStorage에 저장했습니다.`);
+        
       } else {
         throw new Error(result.message || '정답 제출에 실패했습니다.');
       }

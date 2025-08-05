@@ -66,9 +66,7 @@ export default function TodayQuizPage() {
       }
 
       const result = await res.json();
-      console.log('오늘의 뉴스 API 응답:', result);
       if (result.code === 200) {
-        console.log('오늘의 뉴스 데이터:', result.data);
         setTodayNews(result.data);
         return result.data;
       } else {
@@ -99,9 +97,7 @@ export default function TodayQuizPage() {
       }
 
       const result = await res.json();
-      console.log('오늘의 퀴즈 API 응답:', result);
       if (result.code === 200) {
-        console.log('오늘의 퀴즈 데이터:', result.data);
         setDailyQuizzes(result.data);
       } else {
         throw new Error(result.message || '오늘의 퀴즈를 가져오는데 실패했습니다.');
@@ -124,14 +120,12 @@ export default function TodayQuizPage() {
       });
 
       const result = await response.json();
-      console.log(`퀴즈 ${quizId} 제출 응답:`, result);
       
       if (!response.ok) {
         throw new Error(result.message || `퀴즈 제출에 실패했습니다. (${response.status})`);
       }
 
       if (result.code === 200) {
-        console.log(`퀴즈 ${quizId} 제출 결과:`, result.data);
         return result.data;
       } else {
         throw new Error(result.message || '퀴즈 제출에 실패했습니다.');

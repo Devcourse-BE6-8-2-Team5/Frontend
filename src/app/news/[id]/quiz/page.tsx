@@ -186,7 +186,7 @@ export default function NewsQuizPage() {
     }
 
     const result = await res.json();
-    console.log('퀴즈 제출 응답:', result);
+    
     
     if (result.code !== 200) {
         throw new Error(result.message || '퀴즈 제출에 실패했습니다.');

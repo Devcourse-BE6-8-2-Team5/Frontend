@@ -40,18 +40,12 @@ export default function LoginPage() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('로그인 성공, 사용자 데이터:', data.data);
+
         
         // 로그인 성공 시 사용자 정보를 AuthContext에 저장
         if (data.data) {
           login(data.data);
-          console.log('AuthContext에 사용자 정보 저장 완료');
-          
-          // 상태 업데이트를 위해 충분히 대기 후 리다이렉트
-          setTimeout(() => {
-            console.log('로그인 후 페이지 이동');
-            router.push('/');
-          }, 300);
+          router.push('/');
         } else {
           router.push('/');
         }

@@ -97,7 +97,15 @@ export default function OxQuizMainPage() {
       console.log('서버 응답 데이터:', result);
       
       if (result.code === 200) {
-        setQuizzes(result.data);
+        // 서버에서 받은 데이터를 FactQuiz 형태로 매핑
+        const quizData = result.data.map((item: any) => ({
+          id: item.id,
+          question: item.question,
+          realNewsTitle: item.realNewsTitle,
+          newsCategory: item.newsCategory
+        }));
+        
+        setQuizzes(quizData);
       } else {
         throw new Error(result.message || '퀴즈 데이터를 가져오는데 실패했습니다.');
       }
@@ -147,6 +155,22 @@ export default function OxQuizMainPage() {
       fetchQuizzes(category);
     }
   }, [selectedCategory]);
+
+  // 퀴즈 완료 상태 확인 함수
+  const isQuizCompleted = (quizId: number) => {
+    return localStorage.getItem(`oxquiz_completed_${quizId}`) === 'true';
+  };
+
+  // localStorage 변경 감지하여 강제 리렌더링
+  useEffect(() => {
+    const handleStorageChange = () => {
+      // 강제 리렌더링을 위해 상태 업데이트
+      setQuizzes(prev => [...prev]);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // 스크롤에 따른 배경 투명도 계산
   const backgroundOpacity = Math.max(0.1, 1 - (scrollY / 1000));
@@ -287,8 +311,8 @@ export default function OxQuizMainPage() {
                     
                     {/* 퀴즈 질문과 화살표 */}
                           <div className="flex items-center justify-between mt-auto pt-4">
-                            <span className={`text-xs ${localStorage.getItem(`oxquiz_completed_${quiz.id}`) ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}>
-                              {localStorage.getItem(`oxquiz_completed_${quiz.id}`) ? '퀴즈 완료' : '아직 풀지 않음'}
+                            <span className={`text-xs ${isQuizCompleted(quiz.id) ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}>
+                              {isQuizCompleted(quiz.id) ? '퀴즈 완료' : '아직 풀지 않음'}
                             </span>
                       <div className="flex items-center gap-2">
                               <span className="text-sm font-semibold text-gray-700 line-clamp-1">
