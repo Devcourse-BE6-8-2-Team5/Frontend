@@ -11,6 +11,16 @@ export default function Navigation() {
   const { isAuthenticated, user, logout, isLoading } = useAuth();
   const [characterImage, setCharacterImage] = useState<string>("🐣");
 
+  // 디버깅: 사용자 정보 확인
+  useEffect(() => {
+    console.log('Navigation - 인증 상태:', isAuthenticated);
+    console.log('Navigation - 사용자 정보:', user);
+    if (user) {
+      console.log('Navigation - 사용자 이름:', user.name);
+      console.log('Navigation - 사용자 레벨:', user.level);
+    }
+  }, [isAuthenticated, user]);
+
   // 사용자 레벨에 따른 캐릭터 이미지 설정
   useEffect(() => {
     if (user?.level) {

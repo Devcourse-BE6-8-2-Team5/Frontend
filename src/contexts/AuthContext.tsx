@@ -43,7 +43,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const login = (userData: User) => {
-    setUser(userData);
+    console.log('AuthContext login 호출됨:', userData);
+    
+    // 데이터 구조에 따라 사용자 정보 추출
+    let actualUserData;
+    if (userData.member) {
+      // member 객체 안에 사용자 정보가 있는 경우
+      actualUserData = {
+        ...userData.member,
+        profileImgUrl: userData.member.profileImgUrl || ""
+      };
+      console.log('member 객체에서 사용자 정보 추출:', actualUserData);
+    } else {
+      // 평면화된 구조인 경우
+      actualUserData = {
+        ...userData,
+        profileImgUrl: userData.profileImgUrl || ""
+      };
+    }
+    
+    setUser(actualUserData);
     setIsAuthenticated(true);
   };
 
@@ -94,7 +113,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.ok) {
         const data = await response.json();
         if (data.data) {
-          setUser(data.data);
+          console.log('checkAuth에서 받은 데이터:', data.data);
+          
+          // 데이터 구조에 따라 사용자 정보 추출
+          let actualUserData;
+          if (data.data.member) {
+            // member 객체 안에 사용자 정보가 있는 경우
+            actualUserData = {
+              ...data.data.member,
+              profileImgUrl: data.data.member.profileImgUrl || ""
+            };
+            console.log('member 객체에서 사용자 정보 추출:', actualUserData);
+          } else {
+            // 평면화된 구조인 경우
+            actualUserData = {
+              ...data.data,
+              profileImgUrl: data.data.profileImgUrl || ""
+            };
+          }
+          
+          setUser(actualUserData);
           setIsAuthenticated(true);
         }
       } else if (response.status === 401) {

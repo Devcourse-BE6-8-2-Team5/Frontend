@@ -40,13 +40,16 @@ export default function LoginPage() {
 
       if (response.ok) {
         const data = await response.json();
-
+        
+        console.log('로그인 응답 데이터:', data);
         
         // 로그인 성공 시 사용자 정보를 AuthContext에 저장
         if (data.data) {
+          console.log('AuthContext에 저장할 사용자 데이터:', data.data);
           login(data.data);
           router.push('/');
         } else {
+          console.log('사용자 데이터가 없음');
           router.push('/');
         }
       } else {
