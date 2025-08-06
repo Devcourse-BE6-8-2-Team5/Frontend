@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from "@/contexts/AuthContext";
 import { getCharacterImageByLevel } from "@/utils/characterUtils";
@@ -59,24 +59,24 @@ interface RankingMember {
 }
 
 export default function Home() {
+  return (
+    <>
+      <Suspense fallback={<div>Loading...</div>}>
+        <SearchParamsHandler />
+      </Suspense>
+      <HomeContent />
+    </>
+  );
+}
+
+// useSearchParams를 사용하는 컴포넌트를 분리
+function SearchParamsHandler() {
   const searchParams = useSearchParams();
-  const [todayNews, setTodayNews] = useState<TodayNews | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
-  const [newsLoading, setNewsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [rankingMembers, setRankingMembers] = useState<RankingMember[]>([]);
-  const [rankingLoading, setRankingLoading] = useState(true);
   const { checkAuth } = useAuth();
 
   useEffect(() => {
     const loginSuccess = searchParams.get('loginSuccess');
     const message = searchParams.get('message');
-
-
     const redirect = searchParams.get('redirect');
 
     if (loginSuccess === 'true' && message) {
@@ -90,6 +90,21 @@ export default function Home() {
       }
     }
   }, [searchParams, checkAuth]);
+
+  return null; // UI는 렌더링하지 않음
+}
+
+function HomeContent() {
+  const [todayNews, setTodayNews] = useState<TodayNews | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
+  const [newsLoading, setNewsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [rankingMembers, setRankingMembers] = useState<RankingMember[]>([]);
+  const [rankingLoading, setRankingLoading] = useState(true);
 
   // 오늘의 뉴스 불러오기
   useEffect(() => {
