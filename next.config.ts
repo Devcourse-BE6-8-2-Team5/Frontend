@@ -74,10 +74,16 @@ const nextConfig = {
     ],
   },
   async rewrites() {
+    // 개발환경에서는 localhost, 배포환경에서는 fly.dev 사용
+    const isVercel = process.env.VERCEL === '1';
+    const apiUrl = isVercel 
+      ? 'https://news-ox.fly.dev/api/:path*'
+      : 'http://localhost:8080/api/:path*';
+      
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8080/api/:path*',
+        destination: apiUrl,
       },
     ];
   },
