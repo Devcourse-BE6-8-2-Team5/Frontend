@@ -134,7 +134,7 @@ function HomeContent() {
     const fetchTodayNews = async () => {
       setLoading(true);
       try {
-        const res = await fetch('/api/news/today');
+        const res = await fetch('/api/news/today', { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
           if (data.code === 200 && data.data) {
@@ -176,7 +176,7 @@ function HomeContent() {
           url = `/api/news?page=${currentPage}&size=9&direction=desc`;
         }
 
-        const res = await fetch(url);
+        const res = await fetch(url, { credentials: 'include' });
         
         if (res.ok) {
           const data = await res.json();
@@ -215,7 +215,7 @@ function HomeContent() {
     const fetchRanking = async () => {
       setRankingLoading(true);
       try {
-        const res = await fetch('/api/members/rank');
+        const res = await fetch('/api/members/rank', { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
           if (data.code === 200 && data.data) {

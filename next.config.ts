@@ -76,11 +76,31 @@ const nextConfig = {
   async rewrites() {
     // 개발환경에서는 localhost, 배포환경에서는 fly.dev 사용
     const isVercel = process.env.VERCEL === '1';
-    const apiUrl = isVercel 
+
+    const oauthCallback = isVercel
+      ? 'https://news-ox.fly.dev/login/oauth2/code/:provider'
+      : 'http://localhost:8080/login/oauth2/code/:provider';
+
+    const oauthAuthorize = isVercel
+      ? 'https://news-ox.fly.dev/oauth2/authorization/:provider'
+      : 'http://localhost:8080/oauth2/authorization/:provider';
+
+    const apiUrl = isVercel
       ? 'https://news-ox.fly.dev/api/:path*'
       : 'http://localhost:8080/api/:path*';
-      
+
     return [
+      // OAuth 콜백을 프론트 도메인에서 수신 → 백엔드로 프록시
+      {
+        source: '/api/login/oauth2/code/:provider',
+        destination: oauthCallback,
+      },
+      // OAuth 시작 URL을 프론트 경유로 통일
+      {
+        source: '/api/oauth2/authorization/:provider',
+        destination: oauthAuthorize,
+      },
+      // 일반 API 프록시
       {
         source: '/api/:path*',
         destination: apiUrl,

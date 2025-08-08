@@ -76,8 +76,7 @@ export default function OxQuizDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-      const url = `${API_BASE_URL}/api/quiz/fact/${quizId}`;
+      const url = `/api/quiz/fact/${quizId}`;
       
       console.log('퀴즈 상세 API 요청 URL:', url);
       
@@ -164,8 +163,7 @@ export default function OxQuizDetailPage() {
       
       
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-      const url = `${API_BASE_URL}/api/quiz/fact/submit/${id}?selectedNewsType=${actualSelectedNewsType}`;
+      const url = `/api/quiz/fact/submit/${id}?selectedNewsType=${actualSelectedNewsType}`;
       
       console.log('정답 제출 API 요청 URL:', url);
       

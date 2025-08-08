@@ -158,7 +158,7 @@ export default function NewsQuizPage() {
     if (!newsId) return;
     const fetchNewsTitle = async () => {
       try {
-        const res = await fetch(`/api/news/${newsId}`);
+        const res = await fetch(`/api/news/${newsId}`, { credentials: 'include' });
         if (res.ok) {
           const result = await res.json();
           if (result.code === 200 && result.data) {

@@ -129,7 +129,7 @@ export default function LoginPage() {
         
         {/* 네이버 소셜로그인 */}
         <a 
-          href={`${apiUrl}/oauth2/authorization/naver?redirectUrl=${frontendUrl}/`}
+          href={`/api/oauth2/authorization/naver?redirectUrl=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/' : frontendUrl + '/')}`}
           className="group w-full flex items-center gap-3 justify-center h-10 text-base font-medium rounded-full shadow bg-[#03C75A] text-white hover:opacity-90 transition mb-1"
         >
           <Image src="/social/naver_login.png" alt="네이버 로고" width={24} height={24} className="group-hover:opacity-80 transition" />
@@ -138,7 +138,7 @@ export default function LoginPage() {
 
         {/* 구글 소셜로그인 */}
         <a 
-          href={`${apiUrl}/oauth2/authorization/google?redirectUrl=${frontendUrl}/`}
+          href={`/api/oauth2/authorization/google?redirectUrl=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/' : frontendUrl + '/')}`}
           className="group w-full flex items-center gap-3 justify-center h-10 text-base font-medium rounded-full shadow bg-[#FFFFFF] border border-gray-300 text-[#3c4043] hover:bg-gray-50 transition mb-1"
         >
           <Image src="/social/google_login.png" alt="구글 로고" width={24} height={24} className="ml-[-13px] group-hover:opacity-80 transition" />
@@ -147,7 +147,7 @@ export default function LoginPage() {
 
         {/* 카카오 소셜로그인 */}
         <a 
-          href={`${apiUrl}/oauth2/authorization/kakao?redirectUrl=${frontendUrl}/`}
+          href={`/api/oauth2/authorization/kakao?redirectUrl=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/' : frontendUrl + '/')}`}
           className="group w-full flex items-center gap-3 justify-center h-10 text-base font-medium rounded-full shadow bg-[#FEE500] text-[#3C1E1E] hover:bg-[#FFEB3B] transition mb-1"
         >
           <Image src="/social/kakao_login.png" alt="카카오 로고" width={24} height={24} className="group-hover:opacity-70 transition" />
