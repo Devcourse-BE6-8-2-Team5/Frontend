@@ -91,6 +91,29 @@ function SearchParamsHandler() {
     }
   }, [searchParams, checkAuth]);
 
+  // 프래그먼트 처리 (네이버 OAuth 콜백용)
+  useEffect(() => {
+    const handleFragment = () => {
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#')) {
+        // 프래그먼트가 있으면 소셜 로그인 성공으로 간주
+        console.log('소셜 로그인 콜백 감지:', hash);
+        
+        // 사용자 정보 새로고침
+        checkAuth();
+        
+        // 프래그먼트 제거 (URL 정리)
+        window.history.replaceState(null, '', window.location.pathname);
+        
+        // 성공 메시지 표시
+        alert('소셜 로그인이 완료되었습니다!');
+      }
+    };
+
+    // 페이지 로드 시 프래그먼트 확인
+    handleFragment();
+  }, [checkAuth]);
+
   return null; // UI는 렌더링하지 않음
 }
 
