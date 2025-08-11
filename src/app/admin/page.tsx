@@ -81,7 +81,7 @@ export default function AdminPage() {
       setNewsLoading(true);
       setNewsError(null);
       try {
-        const res = await fetch("/api/news?page=1&size=50&direction=desc", { credentials: 'include' });
+        const res = await fetch("/api/admin/news/all?page=1&size=50&direction=desc", { credentials: 'include' });
         if (!res.ok) throw new Error("뉴스 목록 조회 실패");
         const data = await res.json();
         setNews(data.data.content || []);
