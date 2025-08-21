@@ -73,21 +73,14 @@ export default function OxQuizMainPage() {
       setLoading(true);
       setError(null);
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-      let url = `${API_BASE_URL}/api/quiz/fact`;
+      let url = `/api/quiz/fact`;
       if (category) {
         url += `/category?category=${category}`;
       }
       
       console.log('API 요청 URL:', url);
       
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      const response = await fetch(url, { method: 'GET', credentials: 'include' });
       
       console.log('서버 응답 상태:', response.status, response.statusText);
       
