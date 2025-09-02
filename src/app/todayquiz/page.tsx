@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { FaRegNewspaper } from "react-icons/fa";
 import { useRouter } from "next/navigation";
+import { useAuth } from '@/contexts/AuthContext';
+import { apiRequest } from '@/utils/apiHelper';
 
 // 서버에서 받는 퀴즈 정보
 interface DailyQuizDto {
@@ -45,6 +47,7 @@ export default function TodayQuizPage() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+  const { accessToken } = useAuth();
   const router = useRouter();
   const [dailyQuizzes, setDailyQuizzes] = useState<DailyQuizWithHistoryDto[]>([]);
   const [todayNews, setTodayNews] = useState<TodayNews | null>(null);
@@ -57,67 +60,63 @@ export default function TodayQuizPage() {
   // 오늘의 뉴스 조회
   const fetchTodayNews = async () => {
     try {
-      const res = await fetch('/api/news/today', {
-        credentials: 'include',
-      });
+      setLoading(true);
+      const res = await apiRequest('/api/news/today', {}, accessToken);
       
-      if (!res.ok) {
-        throw new Error('오늘의 뉴스를 가져오는데 실패했습니다.');
-      }
-
-      const result = await res.json();
-      if (result.code === 200) {
-        setTodayNews(result.data);
-        return result.data;
+      if (res.ok) {
+        const result = await res.json();
+        if (result.code === 200) {
+          setTodayNews(result.data);
+          return result.data;
+        } else {
+          throw new Error(result.message || '오늘의 뉴스를 가져오는데 실패했습니다.');
+        }
       } else {
-        throw new Error(result.message || '오늘의 뉴스를 가져오는데 실패했습니다.');
+        setIsUnauthorized(true);
+        setLoading(false);
+        return;
       }
     } catch (err) {
       console.error('오늘의 뉴스 조회 오류:', err);
       setError(err instanceof Error ? err.message : '오늘의 뉴스를 가져오는데 실패했습니다.');
       throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
   // 오늘의 퀴즈 조회
   const fetchDailyQuizzes = async (todayNewsId: number) => {
     try {
-      const res = await fetch(`/api/quiz/daily/${todayNewsId}`, {
-        credentials: 'include',
-      });
+      setLoading(true);
+      const res = await apiRequest(`/api/quiz/daily/${todayNewsId}`, {}, accessToken);
       
-      if (res.status === 401) {
+      if (res.ok) {
+        const result = await res.json();
+        if (result.code === 200) {
+          setDailyQuizzes(result.data);
+        } else {
+          throw new Error(result.message || '오늘의 퀴즈를 가져오는데 실패했습니다.');
+        }
+      } else {
         setIsUnauthorized(true);
         setLoading(false);
         return;
       }
-
-      if (!res.ok) {
-        throw new Error('오늘의 퀴즈를 가져오는데 실패했습니다.');
-      }
-
-      const result = await res.json();
-      if (result.code === 200) {
-        setDailyQuizzes(result.data);
-      } else {
-        throw new Error(result.message || '오늘의 퀴즈를 가져오는데 실패했습니다.');
-      }
     } catch (err) {
       console.error('오늘의 퀴즈 조회 오류:', err);
       setError(err instanceof Error ? err.message : '오늘의 퀴즈를 가져오는데 실패했습니다.');
+    } finally {
+      setLoading(false);
     }
   };
 
   // 퀴즈 제출
   const submitQuiz = async (quizId: number, selectedOption: 'OPTION1' | 'OPTION2' | 'OPTION3'): Promise<DailyQuizAnswerDto> => {
     try {
-      const response = await fetch(`/api/quiz/daily/submit/${quizId}?selectedOption=${selectedOption}`, {
+      const response = await apiRequest(`/api/quiz/daily/submit/${quizId}?selectedOption=${selectedOption}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      }, accessToken);
 
       const result = await response.json();
       
@@ -200,7 +199,7 @@ export default function TodayQuizPage() {
     };
 
     loadData();
-  }, []);
+  }, [accessToken]);
 
   // 옵션 텍스트 가져오기
   const getOptionText = (quiz: DailyQuizDto, option: 'OPTION1' | 'OPTION2' | 'OPTION3') => {

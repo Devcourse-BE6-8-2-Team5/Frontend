@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { apiRequest } from '@/utils/apiHelper';
 
 interface NewsDetail {
   id: number;
@@ -23,6 +25,7 @@ export default function NewsDetailPage() {
   const params = useParams();
   const newsId = params.id;
 
+  const { accessToken } = useAuth();
   const [news, setNews] = useState<NewsDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,14 +52,17 @@ export default function NewsDetailPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/news/${newsId}`, { credentials: 'include' });
-        if (!res.ok) throw new Error('뉴스를 불러오지 못했습니다.');
-        const data = await res.json();
-        if (data.code !== 200 || !data.data) {
-          throw new Error(data.message || '뉴스를 찾을 수 없습니다.');
+        const res = await apiRequest(`/api/news/${newsId}`, {}, accessToken);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.code === 200 && data.data) {
+            setNews({ ...data.data, imageUrl: data.data.imgUrl });
+          } else {
+            throw new Error(data.message || '뉴스를 찾을 수 없습니다.');
+          }
+        } else {
+          throw new Error('뉴스를 불러오지 못했습니다.');
         }
-  
-        setNews({ ...data.data, imageUrl: data.data.imgUrl });
       } catch (e: any) {
         setError(e.message || '알 수 없는 오류');
       } finally {
@@ -64,7 +70,7 @@ export default function NewsDetailPage() {
       }
     };
     fetchNews();
-  }, [newsId]);
+  }, [newsId, accessToken]);
 
   const handleQuiz = () => {
     router.push(`/news/${newsId}/quiz`, { scroll: false });

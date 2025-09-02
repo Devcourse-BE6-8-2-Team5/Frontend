@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { FaRegNewspaper } from "react-icons/fa";
 import { useParams, useRouter } from "next/navigation";
+import { useAuth } from '@/contexts/AuthContext';
+import { apiRequest } from '@/utils/apiHelper';
 
 // 서버에서 받는 퀴즈 정보
 interface DetailQuizResDto {
@@ -37,6 +39,7 @@ export default function NewsQuizPage() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+  const { accessToken } = useAuth();
   const params = useParams();
   const router = useRouter();
   const newsId = params.id;
@@ -68,9 +71,7 @@ export default function NewsQuizPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/quiz/detail/news/${newsId}`, {
-          credentials: 'include',
-        });
+        const res = await apiRequest(`/api/quiz/detail/news/${newsId}`, {}, accessToken);
         
         if (res.status === 401) {
           setIsUnauthorized(true);
@@ -93,9 +94,7 @@ export default function NewsQuizPage() {
           
           for (const quiz of quizList) {
           try {
-            const historyRes = await fetch(`/api/quiz/detail/${quiz.id}`, {
-              credentials: 'include',
-            });
+            const historyRes = await apiRequest(`/api/quiz/detail/${quiz.id}`, {}, accessToken);
               
             if (historyRes.ok) {
                  const historyResult = await historyRes.json();
@@ -151,14 +150,14 @@ export default function NewsQuizPage() {
     };
      
     fetchDetailQuizzes();
-   }, [newsId]);
+   }, [newsId, accessToken]);
 
   // 뉴스 제목 가져오기
   useEffect(() => {
     if (!newsId) return;
     const fetchNewsTitle = async () => {
       try {
-        const res = await fetch(`/api/news/${newsId}`, { credentials: 'include' });
+        const res = await apiRequest(`/api/news/${newsId}`, {}, accessToken);
         if (res.ok) {
           const result = await res.json();
           if (result.code === 200 && result.data) {
@@ -171,13 +170,12 @@ export default function NewsQuizPage() {
     };
     
     fetchNewsTitle();
-  }, [newsId]);
+  }, [newsId, accessToken]);
 
   const submitQuiz = async (quizId: number, selectedOption: 'OPTION1' | 'OPTION2' | 'OPTION3'): Promise<DetailQuizAnswerDto> => {
-    const res = await fetch(`/api/quiz/detail/submit/${quizId}?selectedOption=${selectedOption}`, {
+    const res = await apiRequest(`/api/quiz/detail/submit/${quizId}?selectedOption=${selectedOption}`, {
         method: 'POST',
-        credentials: 'include',
-      });
+      }, accessToken);
 
     if (!res.ok) {
       const errorText = await res.text();
@@ -228,9 +226,7 @@ export default function NewsQuizPage() {
 
       // 퀴즈 제출 후 데이터 다시 로드
       if (newsId) {
-        const refreshRes = await fetch(`/api/quiz/detail/news/${newsId}`, {
-          credentials: 'include',
-        });
+        const refreshRes = await apiRequest(`/api/quiz/detail/news/${newsId}`, {}, accessToken);
         if (refreshRes.ok) {
           const refreshResult = await refreshRes.json();
           if (refreshResult.code === 200) {
@@ -240,9 +236,7 @@ export default function NewsQuizPage() {
             
             for (const quiz of quizList) {
               try {
-                const historyRes = await fetch(`/api/quiz/detail/${quiz.id}`, {
-            credentials: 'include',
-          });
+                const historyRes = await apiRequest(`/api/quiz/detail/${quiz.id}`, {}, accessToken);
 
                 if (historyRes.ok) {
                   const historyResult = await historyRes.json();

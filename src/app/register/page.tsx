@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiRequest } from '@/utils/apiHelper';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -71,12 +72,12 @@ export default function RegisterPage() {
     }
 
     try {
-      const response = await fetch("/api/members/join", {
+              const response = await apiRequest("/api/members/join", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include",
+
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),

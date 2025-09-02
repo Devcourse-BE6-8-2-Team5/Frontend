@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { apiRequest } from '@/utils/apiHelper';
 
 interface User {
   id: number;
@@ -17,7 +18,8 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (userData: User) => void;
+  accessToken: string | null;
+  login: (userData: User, accessToken?: string) => void;
   logout: (showAlert?: boolean) => Promise<void>;
   checkAuth: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -41,9 +43,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [accessToken, setAccessToken] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('accessToken');
+    }
+    return null;
+  });
 
-  const login = (userData: User) => {
+  const login = (userData: User, token?: string) => {
     console.log('AuthContext login 호출됨:', userData);
+    
+    // accessToken이 제공된 경우 sessionStorage에 저장
+    if (token) {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('accessToken', token);
+      }
+      setAccessToken(token);
+      console.log('AccessToken이 sessionStorage에 저장되었습니다.');
+    }
     
     // 데이터 구조에 따라 사용자 정보 추출
     let actualUserData;
@@ -69,16 +86,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async (showAlert: boolean = true) => {
     try {
       // 로그아웃 API 호출
-      const response = await fetch('/api/members/logout', {
+      const response = await apiRequest('/api/members/logout', {
         method: 'DELETE',
-        credentials: 'include',
-      });
-
-
+      }, accessToken);
 
       // API 호출 성공 여부와 관계없이 로컬 상태 정리
       setUser(null);
       setIsAuthenticated(false);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('accessToken');
+      }
+      setAccessToken(null);
       
       // showAlert가 true일 때만 알림 표시
       if (showAlert) {
@@ -97,6 +115,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // 에러가 발생해도 로컬 상태는 정리
       setUser(null);
       setIsAuthenticated(false);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('accessToken');
+      }
+      setAccessToken(null);
       
       // showAlert가 true일 때만 알림 표시
       if (showAlert) {
@@ -108,9 +130,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/members/info', {
-        credentials: 'include',
-      });
+      const response = await apiRequest('/api/members/info', {}, accessToken);
 
       if (response.ok) {
         const data = await response.json();
@@ -171,6 +191,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     isAuthenticated,
     isLoading,
+    accessToken,
     login,
     logout,
     checkAuth,

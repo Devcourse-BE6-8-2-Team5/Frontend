@@ -6,6 +6,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from "@/contexts/AuthContext";
 import { getCharacterImageByLevel } from "@/utils/characterUtils";
+import { apiRequest } from "@/utils/apiHelper";
 
 // 경험치를 기반으로 올바른 레벨을 계산하는 함수
 const calculateLevelFromExp = (exp: number): number => {
@@ -118,6 +119,7 @@ function SearchParamsHandler() {
 }
 
 function HomeContent() {
+  const { accessToken } = useAuth();
   const [todayNews, setTodayNews] = useState<TodayNews | null>(null);
   const [loading, setLoading] = useState(true);
   const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
@@ -134,7 +136,7 @@ function HomeContent() {
     const fetchTodayNews = async () => {
       setLoading(true);
       try {
-        const res = await fetch('/api/news/today', { credentials: 'include' });
+        const res = await apiRequest('/api/news/today', {}, accessToken);
         if (res.ok) {
           const data = await res.json();
           if (data.code === 200 && data.data) {
@@ -148,7 +150,7 @@ function HomeContent() {
       }
     };
     fetchTodayNews();
-  }, []);
+  }, [accessToken]);
 
   // 뉴스 기사 목록 불러오기
   useEffect(() => {
@@ -176,7 +178,7 @@ function HomeContent() {
           url = `/api/news?page=${currentPage}&size=9&direction=desc`;
         }
 
-        const res = await fetch(url, { credentials: 'include' });
+        const res = await apiRequest(url, {}, accessToken);
         
         if (res.ok) {
           const data = await res.json();
@@ -208,14 +210,14 @@ function HomeContent() {
     };
 
     fetchNewsArticles();
-  }, [currentPage, searchQuery, selectedCategory]);
+  }, [currentPage, searchQuery, selectedCategory, accessToken]);
 
   // 랭킹 데이터 불러오기
   useEffect(() => {
     const fetchRanking = async () => {
       setRankingLoading(true);
       try {
-        const res = await fetch('/api/members/rank', { credentials: 'include' });
+        const res = await apiRequest('/api/members/rank', {}, accessToken);
         if (res.ok) {
           const data = await res.json();
           if (data.code === 200 && data.data) {
@@ -235,14 +237,14 @@ function HomeContent() {
       }
     };
     fetchRanking();
-  }, []);
+  }, [accessToken]);
 
   return (
     <div className="font-sans min-h-screen bg-white">
       {/* 상단 네비게이션은 layout.tsx에서 공통 처리됨 */}
 
       {/* Hero Section - 서비스 소개 */}
-      <section className="relative pt-32 pb-32 overflow-hidden">
+      <section className="relative pt-38 pb-38 overflow-hidden">
         {/* 배경 그라데이션 */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"></div>
         
@@ -295,7 +297,7 @@ function HomeContent() {
       </section>
 
       {/* 1. 뉴스 + 상세퀴즈 섹션 */}
-      <section className="py-20 bg-blue-50/60">
+      <section className="py-38 bg-blue-50/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* 텍스트 콘텐츠 */}
@@ -370,7 +372,7 @@ function HomeContent() {
       </section>
 
       {/* 2. 오늘의 뉴스 + 오늘의 퀴즈 섹션 */}
-      <section className="py-20 bg-purple-50/60">
+      <section className="py-38 bg-purple-50/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-end">
             <div className="max-w-2xl">
@@ -434,7 +436,7 @@ function HomeContent() {
       </section>
 
       {/* 3. OX퀴즈 섹션 */}
-      <section className="py-20 bg-indigo-50/60">
+      <section className="py-38 bg-indigo-50/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* 텍스트 콘텐츠 */}
@@ -498,7 +500,7 @@ function HomeContent() {
       </section>
 
       {/* 4. 캐릭터 키우기 + 랭킹 섹션 */}
-      <section className="py-20 bg-green-50/60">
+      <section className="py-16 bg-green-50/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
@@ -512,7 +514,7 @@ function HomeContent() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* 캐릭터 키우기 */}
-            <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-3xl p-8 shadow-xl">
+            <div className="bg-white rounded-3xl p-8 shadow-xl">
               <div className="text-center mb-8">
                 <h3 className="text-3xl font-bold text-gray-900 mb-4">🐤 캐릭터 키우기</h3>
                 <p className="text-gray-600">퀴즈를 풀어서 캐릭터를 성장시켜주세요</p>
@@ -570,7 +572,7 @@ function HomeContent() {
             </div>
 
             {/* 랭킹 시스템 */}
-            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-3xl p-8 shadow-xl">
+            <div className="bg-white rounded-3xl p-8 shadow-xl">
               <div className="text-center mb-8">
                 <h3 className="text-3xl font-bold text-gray-900 mb-4">🏆 랭킹제도</h3>
                 <p className="text-gray-600">퀴즈 고수 TOP3를 확인해보세요!</p>
@@ -621,7 +623,7 @@ function HomeContent() {
               📰 뉴스 기사 목록
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              최신 뉴스를 확인하고 관심 있는 기사를 찾아보세요
+              최신 뉴스를 확인하고 관심 있는 기사를 찾아보세요 
             </p>
           </div>
 
@@ -757,7 +759,14 @@ function HomeContent() {
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-2">
               <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                onClick={() => {
+                  setCurrentPage(Math.max(1, currentPage - 1));
+                  const section = document.getElementById('news-section');
+                  if (section) {
+                    const y = section.getBoundingClientRect().top + window.scrollY + 120;
+                    window.scrollTo({ top: y, behavior: 'auto' });
+                  }
+                }}
                 disabled={currentPage === 1}
                 className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-md"
               >
@@ -769,7 +778,14 @@ function HomeContent() {
                 return (
                   <button
                     key={`page-${pageNum}`}
-                    onClick={() => setCurrentPage(pageNum)}
+                    onClick={() => {
+                      setCurrentPage(pageNum);
+                      const section = document.getElementById('news-section');
+                      if (section) {
+                        const y = section.getBoundingClientRect().top + window.scrollY + 120;
+                        window.scrollTo({ top: y, behavior: 'auto' });
+                      }
+                    }}
                     className={`px-4 py-2 rounded-lg transition-all duration-300 ${
                       currentPage === pageNum
                         ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
@@ -782,7 +798,14 @@ function HomeContent() {
               })}
               
               <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                onClick={() => {
+                  setCurrentPage(Math.min(totalPages, currentPage + 1));
+                  const section = document.getElementById('news-section');
+                  if (section) {
+                    const y = section.getBoundingClientRect().top + window.scrollY + 120;
+                    window.scrollTo({ top: y, behavior: 'auto' });
+                  }
+                }}
                 disabled={currentPage === totalPages}
                 className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-md"
               >

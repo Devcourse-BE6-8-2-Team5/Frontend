@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiRequest } from '@/utils/apiHelper';
 
 // NewsCategory enum (서버와 일치)
 enum NewsCategory {
@@ -49,7 +50,7 @@ interface ApiResponse<T> {
 }
 
 export default function OxQuizMainPage() {
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [quizzes, setQuizzes] = useState<FactQuiz[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +81,7 @@ export default function OxQuizMainPage() {
       
       console.log('API 요청 URL:', url);
       
-      const response = await fetch(url, { method: 'GET', credentials: 'include' });
+      const response = await apiRequest(url, { method: 'GET' }, accessToken);
       
       console.log('서버 응답 상태:', response.status, response.statusText);
       
@@ -139,7 +140,7 @@ export default function OxQuizMainPage() {
   // 페이지 로드 시 전체 퀴즈 데이터 가져오기
   useEffect(() => {
     fetchQuizzes();
-  }, []);
+  }, [selectedCategory, accessToken]);
 
   // 카테고리 변경 시 퀴즈 데이터 다시 가져오기
   useEffect(() => {
@@ -149,7 +150,7 @@ export default function OxQuizMainPage() {
       const category = selectedCategory as NewsCategory;
       fetchQuizzes(category);
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, accessToken]);
 
   // 사용자별 localStorage 키 생성 함수
   const getUserSpecificKey = (baseKey: string) => {

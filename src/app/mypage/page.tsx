@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { getCharacterInfo, CharacterInfo } from '@/utils/characterUtils';
+import { apiRequest } from '@/utils/apiHelper';
 
 interface MemberInfo {
   id: number;
@@ -16,7 +17,7 @@ interface MemberInfo {
 }
 
 export default function MyPage() {
-  const { isAuthenticated, user, checkAuth, logout } = useAuth();
+  const { isAuthenticated, user, checkAuth, logout, accessToken } = useAuth();
   const router = useRouter();
   const [memberInfo, setMemberInfo] = useState<MemberInfo | null>(null);
   const [characterInfo, setCharacterInfo] = useState<CharacterInfo | null>(null);
@@ -30,9 +31,7 @@ export default function MyPage() {
     const checkAuthAndFetchInfo = async () => {
       try {
         // 직접 인증 확인 및 회원 정보 조회
-        const response = await fetch('/api/members/info', {
-          credentials: 'include',
-        });
+        const response = await apiRequest('/api/members/info', {}, accessToken);
 
         if (response.ok) {
           // 인증된 경우 회원 정보 설정
@@ -50,7 +49,7 @@ export default function MyPage() {
     };
 
     checkAuthAndFetchInfo();
-  }, []);
+  }, [accessToken]);
 
   // 퀴즈 완료 이벤트 감지하여 정보 새로고침
   useEffect(() => {
@@ -75,9 +74,7 @@ export default function MyPage() {
 
   const fetchMemberInfo = async () => {
     try {
-      const response = await fetch('/api/members/info', {
-        credentials: 'include',
-      });
+      const response = await apiRequest('/api/members/info', {}, accessToken);
 
       if (!response.ok) {
         throw new Error('회원 정보 조회에 실패했습니다.');

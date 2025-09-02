@@ -1,6 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from '@/contexts/AuthContext';
+import { apiRequest } from '@/utils/apiHelper';
 
 // 회원 타입
 interface MemberWithInfoDto {
@@ -14,6 +16,7 @@ interface MemberWithInfoDto {
 }
 
 export default function AdminPage() {
+  const { accessToken } = useAuth();
   const router = useRouter();
   const [user, setUser] = useState<MemberWithInfoDto | null>(null);
   const [users, setUsers] = useState<MemberWithInfoDto[]>([]);
@@ -28,7 +31,7 @@ export default function AdminPage() {
   useEffect(() => {
     const fetchMyInfo = async () => {
       try {
-        const res = await fetch("/api/members/info", { credentials: "include" });
+        const res = await apiRequest("/api/members/info", {}, accessToken);
         if (!res.ok) throw new Error("로그인이 필요합니다.");
         const data = await res.json();
         if (!data.data) throw new Error("로그인이 필요합니다.");
@@ -43,7 +46,7 @@ export default function AdminPage() {
       }
     };
     fetchMyInfo();
-  }, [router]);
+  }, [router, accessToken]);
 
   // 회원 목록 조회
   useEffect(() => {
@@ -52,7 +55,7 @@ export default function AdminPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/admin/members", { credentials: "include" });
+        const res = await apiRequest("/api/admin/members", {}, accessToken);
         if (res.status === 403) {
           setError("관리자 권한이 필요합니다.");
           return;
@@ -72,7 +75,7 @@ export default function AdminPage() {
       }
     };
     fetchUsers();
-  }, [user, router]);
+  }, [user, router, accessToken]);
 
   // 뉴스 목록 조회
   useEffect(() => {
@@ -81,7 +84,7 @@ export default function AdminPage() {
       setNewsLoading(true);
       setNewsError(null);
       try {
-        const res = await fetch("/api/admin/news/all?page=1&size=50&direction=desc", { credentials: 'include' });
+        const res = await apiRequest("/api/admin/news/all?page=1&size=50&direction=desc", {}, accessToken);
         if (!res.ok) throw new Error("뉴스 목록 조회 실패");
         const data = await res.json();
         setNews(data.data.content || []);
@@ -92,7 +95,7 @@ export default function AdminPage() {
       }
     };
     fetchNews();
-  }, [user]);
+  }, [user, accessToken]);
 
   // 오늘의 뉴스 id 조회
   useEffect(() => {

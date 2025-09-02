@@ -47,10 +47,17 @@ export default function LoginPage() {
         
         console.log('로그인 응답 데이터:', data);
         
-        // 로그인 성공 시 사용자 정보를 AuthContext에 저장
-        if (data.data) {
-          console.log('AuthContext에 저장할 사용자 데이터:', data.data);
-          login(data.data);
+        // 새로운 토큰 응답 형식 처리
+        if (data.code === 200 && data.data) {
+          const { accessToken, ...userData } = data.data;
+          
+          console.log('AuthContext에 저장할 사용자 데이터:', userData);
+          console.log('받은 accessToken:', accessToken);
+          
+          // 사용자 정보와 accessToken을 함께 AuthContext에 저장
+          login(userData, accessToken);
+          
+          // 메인 페이지로 이동
           router.push('/');
         } else {
           console.log('사용자 데이터가 없음');

@@ -3,6 +3,7 @@
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
+import { apiRequest } from '@/utils/apiHelper';
 
 // 서버 응답 타입 정의
 interface ApiResponse<T> {
@@ -43,7 +44,7 @@ interface FactQuizAnswerDto {
 export default function OxQuizDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, accessToken } = useAuth();
   const id = params.id as string;
   const [quizData, setQuizData] = useState<FactQuizWithHistoryDto | null>(null);
   const [selected, setSelected] = useState<'A' | 'B' | null>(null);
@@ -80,11 +81,10 @@ export default function OxQuizDetailPage() {
       
       console.log('퀴즈 상세 API 요청 URL:', url);
       
-      const response = await fetch(url, {
+      const response = await apiRequest(url, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
+      }, accessToken);
       
       console.log('서버 응답 상태:', response.status, response.statusText);
       
@@ -167,11 +167,10 @@ export default function OxQuizDetailPage() {
       
       console.log('정답 제출 API 요청 URL:', url);
       
-      const response = await fetch(url, {
+      const response = await apiRequest(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
+      }, accessToken);
       
       console.log('정답 제출 응답 상태:', response.status, response.statusText);
       

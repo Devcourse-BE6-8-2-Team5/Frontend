@@ -4,6 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from '@/contexts/AuthContext';
+import { apiRequest } from '@/utils/apiHelper';
 
 interface TodayNews {
   id: number;
@@ -20,6 +22,7 @@ interface TodayNews {
 }
 
 export default function TodayNews() {
+  const { accessToken } = useAuth();
   const [news, setNews] = useState<TodayNews | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,13 +47,9 @@ export default function TodayNews() {
   useEffect(() => {
     const fetchTodayNews = async () => {
       try {
-        const response = await fetch('/api/news/today', {
+        const response = await apiRequest('/api/news/today', {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        });
+        }, accessToken);
 
         if (response.status === 401) {
           setError('로그인 후 이용해주세요.');
@@ -73,7 +72,7 @@ export default function TodayNews() {
     };
 
     fetchTodayNews();
-  }, []);
+  }, [accessToken]);
 
   if (loading) {
     return (
