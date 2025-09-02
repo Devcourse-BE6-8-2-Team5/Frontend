@@ -210,6 +210,13 @@ export default function MyPage() {
   };
 
   const expPercent = calculateExpPercent(memberInfo.exp, memberInfo.level);
+  // 바를 '현재 레벨 마커'에서 '다음 레벨 마커' 사이만 채우도록 오프셋/폭 계산
+  const currentLevel = characterInfo?.level ?? memberInfo.level;
+  const segmentPercent = characterInfo?.expPercent ?? expPercent; // 0~100 (현재 레벨 구간 진행도)
+  const leftOffsetPercent = currentLevel === 2 ? 50 : 0; // 1레벨 구간: 0%, 2레벨 구간: 50%, 3레벨은 전체 채움
+  const widthPercent = currentLevel === 3 ? 100 : Math.max(0, Math.min(100, segmentPercent)) * 0.5; // 각 구간은 전체 바의 50%
+  const displayPercent = currentLevel === 3 ? 100 : Math.round(Math.max(0, Math.min(100, segmentPercent)) * 0.5);
+  const nextLevelLabel = currentLevel >= 3 ? '최고 레벨' : '다음 레벨까지';
 
   return (
       <div className="min-h-screen bg-gradient-to-b from-[#f7fafd] to-[#e6eaf3] flex flex-col items-center justify-center py-16 relative overflow-hidden">
@@ -387,26 +394,27 @@ export default function MyPage() {
                   </span>
                   </div>
                   <div className="relative w-full h-8 bg-white/60 rounded-full overflow-hidden shadow-inner mb-6 border-2 border-[#e0e7ef]">
+                    {/* 구간 진행도: 1레벨(0~50%), 2레벨(50~100%), 3레벨은 전체 채움 */}
                     <div
-                        className="absolute left-0 top-0 h-8 bg-gradient-to-r from-[#7f9cf5] via-[#43e6b5] to-[#bfe0f5] rounded-full transition-all duration-1000 ease-out border border-white/50"
-                        style={{ width: `${Math.max(characterInfo?.expPercent || 0, 5)}%` }}
+                        className="absolute top-0 h-8 bg-gradient-to-r from-[#7f9cf5] via-[#43e6b5] to-[#bfe0f5] rounded-full transition-all duration-700 ease-out border border-white/50"
+                        style={{ left: `${leftOffsetPercent}%`, width: `${widthPercent}%` }}
                     />
                     {/* 경험치 바 내부 반짝이는 효과 */}
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
                     {/* 경험치 텍스트 */}
                     <div className="absolute inset-0 flex items-center justify-center text-xs text-[#2b6cb0] font-bold">
-                      {characterInfo?.expPercent || 0}% (EXP: {characterInfo?.exp || 0}, Level: {characterInfo?.level || 1})
+                      {currentLevel >= 3 ? '최고 레벨 달성' : `${nextLevelLabel} ${displayPercent}% 진행`}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-6">
                     <div className="text-center p-4 bg-gradient-to-r from-[#f8fafc] to-[#e6f1fb] rounded-2xl border border-[#e0e7ef]/50">
-                      <div className="text-sm text-[#64748b] font-medium mb-1">현재 경험치</div>
-                      <div className="text-2xl text-[#2b6cb0] font-bold">{characterInfo?.exp || 0}</div>
+                      <div className="text-sm text-[#64748b] font-medium mb-1">현재 레벨</div>
+                      <div className="text-2xl text-[#2b6cb0] font-bold">{(characterInfo?.level || 1)}레벨</div>
                     </div>
                     <div className="text-center p-4 bg-gradient-to-r from-[#f8fafc] to-[#e6f1fb] rounded-2xl border border-[#e0e7ef]/50">
-                      <div className="text-sm text-[#64748b] font-medium mb-1">현재 레벨</div>
-                      <div className="text-2xl text-[#2b6cb0] font-bold">{characterInfo?.level || 1}</div>
+                      <div className="text-sm text-[#64748b] font-medium mb-1">현재 경험치</div>
+                      <div className="text-2xl text-[#2b6cb0] font-bold">{(characterInfo?.exp || 0)}점</div>
                     </div>
                   </div>
                 </div>
