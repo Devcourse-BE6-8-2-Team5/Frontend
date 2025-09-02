@@ -817,21 +817,21 @@ function HomeContent() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-200 text-gray-700 py-12">
+      <footer className="bg-gray-200 text-gray-700 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* 서비스 정보 섹션 */}
             <div>
-              <h3 className="text-2xl font-bold mb-4 text-[#2b6cb0]">
+              <h3 className="text-2xl font-bold mb-3 text-[#2b6cb0]">
                 뉴스OX
               </h3>
-              <p className="text-gray-500 mb-4 leading-relaxed">
+              <p className="text-gray-500 mb-3 leading-relaxed">
                 매일 업데이트되는 최신 뉴스를 기반으로 AI가 생성한 퀴즈를 풀며 
                 지식을 쌓는 새로운 학습 플랫폼입니다.
               </p>
               <div className="flex space-x-4">
                 <a 
-                  href="https://github.com/Devcourse-BE6-8-2-Team5/Frontend" 
+                  href="https://github.com/Devcourse-BE6-8-2-Team5/Backend" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-600 hover:text-gray-800 transition-colors"
@@ -845,7 +845,7 @@ function HomeContent() {
 
             {/* 주요 기능 섹션 */}
             <div>
-              <h4 className="text-lg font-semibold mb-4">주요 기능</h4>
+              <h4 className="text-lg font-semibold mb-3">주요 기능</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2 text-gray-500">
                   <div>📰 상세 퀴즈</div>
@@ -861,7 +861,7 @@ function HomeContent() {
           </div>
 
           {/* 저작권 정보 */}
-          <div className="border-t border-gray-400 mt-12 pt-8 text-center">
+          <div className="border-t border-gray-400 mt-8 pt-6 text-center">
             <p className="text-gray-400">
               © 2025 뉴스OX. All rights reserved.
             </p>
