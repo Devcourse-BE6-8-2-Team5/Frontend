@@ -215,9 +215,13 @@ export default function MyPage() {
   // 전체 바를 200%로 보고 (1레벨 0~100, 2레벨 100~200), 시각적 바는 0~100%로 환산
   const cappedExp = Math.max(0, Math.min(characterInfo?.exp ?? memberInfo.exp, 200));
   const widthPercent = Math.round((cappedExp / 200) * 100); // 0~100
-  // 텍스트는 이전처럼 '다음 레벨까지' 진행률로 안내
-  const segmentPercent = characterInfo?.expPercent ?? expPercent; // 0~100 (현재 레벨 구간 진행도)
-  const displayPercent = currentLevel >= 3 ? 100 : Math.round(Math.max(0, Math.min(100, segmentPercent)) * 0.5);
+  // 텍스트: 현재 레벨 구간 진행도 (1레벨: 0~100, 2레벨: 100~200를 0~100으로 환산)
+  const absoluteExp = characterInfo?.exp ?? memberInfo.exp;
+  const textPercent = currentLevel >= 3
+    ? 100
+    : currentLevel === 2
+      ? Math.max(0, Math.min(100, Math.round(((absoluteExp - 100) / 100) * 100)))
+      : Math.max(0, Math.min(100, Math.round((absoluteExp / 100) * 100)));
   const nextLevelLabel = currentLevel >= 3 ? '최고 레벨' : '다음 레벨까지';
 
   return (
@@ -405,7 +409,7 @@ export default function MyPage() {
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
                     {/* 경험치 텍스트 */}
                     <div className="absolute inset-0 flex items-center justify-center text-xs text-[#2b6cb0] font-bold">
-                      {currentLevel >= 3 ? '최고 레벨 달성' : `${nextLevelLabel} ${displayPercent}% 진행`}
+                      {currentLevel >= 3 ? '최고 레벨 달성' : `${nextLevelLabel} ${textPercent}% 진행`}
                     </div>
                   </div>
 
