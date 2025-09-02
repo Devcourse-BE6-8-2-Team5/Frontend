@@ -242,7 +242,7 @@ function HomeContent() {
       {/* 상단 네비게이션은 layout.tsx에서 공통 처리됨 */}
 
       {/* Hero Section - 서비스 소개 */}
-      <section className="relative pt-32 pb-32 overflow-hidden">
+      <section className="relative pt-38 pb-38 overflow-hidden">
         {/* 배경 그라데이션 */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"></div>
         
@@ -295,7 +295,7 @@ function HomeContent() {
       </section>
 
       {/* 1. 뉴스 + 상세퀴즈 섹션 */}
-      <section className="py-20 bg-blue-50/60">
+      <section className="py-38 bg-blue-50/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* 텍스트 콘텐츠 */}
@@ -370,7 +370,7 @@ function HomeContent() {
       </section>
 
       {/* 2. 오늘의 뉴스 + 오늘의 퀴즈 섹션 */}
-      <section className="py-20 bg-purple-50/60">
+      <section className="py-38 bg-purple-50/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-end">
             <div className="max-w-2xl">
@@ -434,7 +434,7 @@ function HomeContent() {
       </section>
 
       {/* 3. OX퀴즈 섹션 */}
-      <section className="py-20 bg-indigo-50/60">
+      <section className="py-38 bg-indigo-50/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* 텍스트 콘텐츠 */}
@@ -498,7 +498,7 @@ function HomeContent() {
       </section>
 
       {/* 4. 캐릭터 키우기 + 랭킹 섹션 */}
-      <section className="py-20 bg-green-50/60">
+      <section className="py-16 bg-green-50/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
@@ -757,7 +757,14 @@ function HomeContent() {
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-2">
               <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                onClick={() => {
+                  setCurrentPage(Math.max(1, currentPage - 1));
+                  const section = document.getElementById('news-section');
+                  if (section) {
+                    const y = section.getBoundingClientRect().top + window.scrollY + 120;
+                    window.scrollTo({ top: y, behavior: 'auto' });
+                  }
+                }}
                 disabled={currentPage === 1}
                 className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-md"
               >
@@ -769,7 +776,14 @@ function HomeContent() {
                 return (
                   <button
                     key={`page-${pageNum}`}
-                    onClick={() => setCurrentPage(pageNum)}
+                    onClick={() => {
+                      setCurrentPage(pageNum);
+                      const section = document.getElementById('news-section');
+                      if (section) {
+                        const y = section.getBoundingClientRect().top + window.scrollY + 120;
+                        window.scrollTo({ top: y, behavior: 'auto' });
+                      }
+                    }}
                     className={`px-4 py-2 rounded-lg transition-all duration-300 ${
                       currentPage === pageNum
                         ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
@@ -782,7 +796,14 @@ function HomeContent() {
               })}
               
               <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                onClick={() => {
+                  setCurrentPage(Math.min(totalPages, currentPage + 1));
+                  const section = document.getElementById('news-section');
+                  if (section) {
+                    const y = section.getBoundingClientRect().top + window.scrollY + 120;
+                    window.scrollTo({ top: y, behavior: 'auto' });
+                  }
+                }}
                 disabled={currentPage === totalPages}
                 className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-md"
               >
@@ -794,21 +815,21 @@ function HomeContent() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-200 text-gray-700 py-12">
+      <footer className="bg-gray-200 text-gray-700 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* 서비스 정보 섹션 */}
             <div>
-              <h3 className="text-2xl font-bold mb-4 text-[#2b6cb0]">
+              <h3 className="text-2xl font-bold mb-3 text-[#2b6cb0]">
                 뉴스OX
               </h3>
-              <p className="text-gray-500 mb-4 leading-relaxed">
+              <p className="text-gray-500 mb-3 leading-relaxed">
                 매일 업데이트되는 최신 뉴스를 기반으로 AI가 생성한 퀴즈를 풀며 
                 지식을 쌓는 새로운 학습 플랫폼입니다.
               </p>
               <div className="flex space-x-4">
                 <a 
-                  href="https://github.com/your-repo/newsquiz" 
+                  href="https://github.com/Devcourse-BE6-8-2-Team5/Backend" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-600 hover:text-gray-800 transition-colors"
@@ -822,7 +843,7 @@ function HomeContent() {
 
             {/* 주요 기능 섹션 */}
             <div>
-              <h4 className="text-lg font-semibold mb-4">주요 기능</h4>
+              <h4 className="text-lg font-semibold mb-3">주요 기능</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2 text-gray-500">
                   <div>📰 상세 퀴즈</div>
@@ -838,7 +859,7 @@ function HomeContent() {
           </div>
 
           {/* 저작권 정보 */}
-          <div className="border-t border-gray-400 mt-12 pt-8 text-center">
+          <div className="border-t border-gray-400 mt-8 pt-6 text-center">
             <p className="text-gray-400">
               © 2025 뉴스OX. All rights reserved.
             </p>
