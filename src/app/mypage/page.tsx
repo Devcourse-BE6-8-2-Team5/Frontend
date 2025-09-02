@@ -212,10 +212,12 @@ export default function MyPage() {
   const expPercent = calculateExpPercent(memberInfo.exp, memberInfo.level);
   // 바를 '현재 레벨 마커'에서 '다음 레벨 마커' 사이만 채우도록 오프셋/폭 계산
   const currentLevel = characterInfo?.level ?? memberInfo.level;
+  // 전체 바를 200%로 보고 (1레벨 0~100, 2레벨 100~200), 시각적 바는 0~100%로 환산
+  const cappedExp = Math.max(0, Math.min(characterInfo?.exp ?? memberInfo.exp, 200));
+  const widthPercent = Math.round((cappedExp / 200) * 100); // 0~100
+  // 텍스트는 이전처럼 '다음 레벨까지' 진행률로 안내
   const segmentPercent = characterInfo?.expPercent ?? expPercent; // 0~100 (현재 레벨 구간 진행도)
-  const leftOffsetPercent = currentLevel === 2 ? 50 : 0; // 1레벨 구간: 0%, 2레벨 구간: 50%, 3레벨은 전체 채움
-  const widthPercent = currentLevel === 3 ? 100 : Math.max(0, Math.min(100, segmentPercent)) * 0.5; // 각 구간은 전체 바의 50%
-  const displayPercent = currentLevel === 3 ? 100 : Math.round(Math.max(0, Math.min(100, segmentPercent)) * 0.5);
+  const displayPercent = currentLevel >= 3 ? 100 : Math.round(Math.max(0, Math.min(100, segmentPercent)) * 0.5);
   const nextLevelLabel = currentLevel >= 3 ? '최고 레벨' : '다음 레벨까지';
 
   return (
@@ -394,10 +396,10 @@ export default function MyPage() {
                   </span>
                   </div>
                   <div className="relative w-full h-8 bg-white/60 rounded-full overflow-hidden shadow-inner mb-6 border-2 border-[#e0e7ef]">
-                    {/* 구간 진행도: 1레벨(0~50%), 2레벨(50~100%), 3레벨은 전체 채움 */}
+                    {/* 전체 누적 진행도: 0~200%를 0~100%로 환산하여 표시 (1레벨 절반, 2레벨까지 전부) */}
                     <div
-                        className="absolute top-0 h-8 bg-gradient-to-r from-[#7f9cf5] via-[#43e6b5] to-[#bfe0f5] rounded-full transition-all duration-700 ease-out border border-white/50"
-                        style={{ left: `${leftOffsetPercent}%`, width: `${widthPercent}%` }}
+                        className="absolute left-0 top-0 h-8 bg-gradient-to-r from-[#7f9cf5] via-[#43e6b5] to-[#bfe0f5] rounded-full transition-all duration-700 ease-out border border-white/50"
+                        style={{ width: `${widthPercent}%` }}
                     />
                     {/* 경험치 바 내부 반짝이는 효과 */}
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
