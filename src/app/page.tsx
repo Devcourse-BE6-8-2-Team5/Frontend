@@ -831,7 +831,7 @@ function HomeContent() {
               </p>
               <div className="flex space-x-4">
                 <a 
-                  href="https://github.com/your-repo/newsquiz" 
+                  href="https://github.com/Devcourse-BE6-8-2-Team5/Frontend" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-600 hover:text-gray-800 transition-colors"
