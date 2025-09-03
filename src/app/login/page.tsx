@@ -1,9 +1,9 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function LoginPage() {
 
@@ -13,12 +13,19 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams(); 
   const redirectUrl = searchParams.get('redirect') || '/'; 
+
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [emailError, setEmailError] = useState('');
+
+  // 브라우저에서만 origin을 가져오기
+  const [origin, setOrigin] = useState('');
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -46,18 +53,10 @@ export default function LoginPage() {
 
       if (response.ok) {
         const data = await response.json();
-
-        console.log('로그인 응답 데이터:', data);
-        
-        // 로그인 성공 시 사용자 정보를 AuthContext에 저장
         if (data.data) {
-          console.log('AuthContext에 저장할 사용자 데이터:', data.data);
           login(data.data);
-          router.push(redirectUrl);
-        } else {
-          console.log('사용자 데이터가 없음');
-          router.push(redirectUrl);
         }
+        router.push(redirectUrl);
       } else {
         const data = await response.json();
         throw new Error(data.message || '로그인에 실패했습니다.');
@@ -67,6 +66,13 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // 소셜 로그인 URL 생성 함수
+  const getSocialLoginHref = (provider: string) => {
+    const base = `/api/oauth2/authorization/${provider}`;
+    const fullRedirect = origin ? origin + redirectUrl : frontendUrl + redirectUrl;
+    return `${base}?redirectUrl=${encodeURIComponent(fullRedirect)}`;
   };
 
   return (
@@ -131,7 +137,7 @@ export default function LoginPage() {
         
         {/* 네이버 소셜로그인 */}
         <a 
-          href={`/api/oauth2/authorization/naver?redirectUrl=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + redirectUrl : frontendUrl + redirectUrl)}`}
+          href={getSocialLoginHref('naver')}
           className="group w-full flex items-center gap-3 justify-center h-10 text-base font-medium rounded-full shadow bg-[#03C75A] text-white hover:opacity-90 transition mb-1"
         >
           <Image src="/social/naver_login.png" alt="네이버 로고" width={24} height={24} className="group-hover:opacity-80 transition" />
@@ -140,7 +146,7 @@ export default function LoginPage() {
 
         {/* 구글 소셜로그인 */}
         <a 
-          href={`/api/oauth2/authorization/google?redirectUrl=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + redirectUrl : frontendUrl + redirectUrl)}`}
+          href={getSocialLoginHref('google')}
           className="group w-full flex items-center gap-3 justify-center h-10 text-base font-medium rounded-full shadow bg-[#FFFFFF] border border-gray-300 text-[#3c4043] hover:bg-gray-50 transition mb-1"
         >
           <Image src="/social/google_login.png" alt="구글 로고" width={24} height={24} className="ml-[-13px] group-hover:opacity-80 transition" />
@@ -149,7 +155,7 @@ export default function LoginPage() {
 
         {/* 카카오 소셜로그인 */}
         <a 
-          href={`/api/oauth2/authorization/kakao?redirectUrl=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + redirectUrl : frontendUrl + redirectUrl)}`}
+          href={getSocialLoginHref('kakao')}
           className="group w-full flex items-center gap-3 justify-center h-10 text-base font-medium rounded-full shadow bg-[#FEE500] text-[#3C1E1E] hover:bg-[#FFEB3B] transition mb-1"
         >
           <Image src="/social/kakao_login.png" alt="카카오 로고" width={24} height={24} className="group-hover:opacity-70 transition" />
@@ -162,4 +168,4 @@ export default function LoginPage() {
       </form>
     </div>
   );
-} 
+}
